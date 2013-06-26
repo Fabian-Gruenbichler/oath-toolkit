@@ -40,7 +40,7 @@ main (void)
         return 1;
     }
     const char *secret = "000000";
-    char suite[] = "OCRA-1:HOTP-SHA1-5:abcdefg";
+    char suite[] = "OCRA-1:HOTP-SHA1-5:C-QN05-S064-T05H-PSHA1";
 
     rc = oath_ocra_generate(secret, strlen(secret), 
             suite, strlen(suite), 
@@ -51,11 +51,3 @@ main (void)
         return 1;
     }
 }
-
-/*
- * ocra_generate(const char *secret, size_t secret_length, 
-            char *ocra_suite, size_t ocra_suite_length, 
-            uint64_t counter, char *challenges, 
-            size_t challenges_length, char *pHash, 
-            char *session, time_t timestamp, char *output_ocra) 
- */
