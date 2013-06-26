@@ -299,6 +299,19 @@ oath_totp_validate3_callback (const char *secret,
 			      oath_validate_strcmp_function strcmp_otp,
 			      void *strcmp_handle);
 
+extern OATHAPI int
+oath_ocra_generate(const char *secret, 
+			size_t secret_length, 
+			char *ocra_suite, 
+			size_t ocra_suite_length, 
+			uint64_t counter, 
+			char *challenges, 
+			size_t challenges_length, 
+			char *pHash, 
+			char *session, 
+			time_t timestamp, 
+			char *output_ocra);
+
 /* Usersfile */
 
 extern OATHAPI int

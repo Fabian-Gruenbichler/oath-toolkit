@@ -76,3 +76,9 @@ LIBOATH_2.2.0
     oath_totp_validate3;
     oath_totp_validate3_callback;
 } LIBOATH_1.12.0;
+
+LIBOATH_2.4.0
+{
+  global:
+    oath_ocra_generate;
+} LIBOATH_2.2.0;
