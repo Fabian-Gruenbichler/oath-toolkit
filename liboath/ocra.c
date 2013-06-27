@@ -361,7 +361,7 @@ oath_ocra_generate(const char *secret, size_t secret_length,
     curr_ptr+=challenges_length;
 
     if(challenge_length<128) {
-        memset(curr_ptr,'0',(128-challenge_length));
+        memset(curr_ptr,'\0',(128-challenge_length));
         curr_ptr+=(128-challenge_length);
     }
 
