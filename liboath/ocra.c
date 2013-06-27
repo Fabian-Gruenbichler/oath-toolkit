@@ -23,41 +23,11 @@
 #include "oath.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h> //for tokenization
 #include <ctype.h>
 #include <inttypes.h>
 #include "gc.h"
-
-/**
- * ocra_generate:
- * @secret: the shared secret string
- * @secret_length: length of @secret
- * @ocra_suite: string with information about used hash algorithms and input
- * @ocra_suite_length: length of @ocra_suite
- * @counter: counter value, optional (see @ocra_suite)
- * @challenges: client/server challenge values, mandatory
- * @challenges_length: length of @challenges
- * @pHash: hashed password value, optional (see @ocra_suite)
- * @session: static data about current session, optional (see @ocra-suite)
- * @timestamp: current timestamp, optional (see @ocra_suite)
- * @output_ocra: output buffer,
- *
- * Generate a truncated hash-value used for challenge-response-based
- * authentication according to the OCRA algorithm described in RFC 6287. 
- * Besides the mandatory challenge(s), additional input is optional.
- *
- * The string @ocra_suite denotes which mode of OCRA is to be used. Furthermore
- * it contains information about which of the possible optional data inputs are
- * to be used, and how.
- *
- * The output buffer @output_ocra must have room for at least as many digits as
- * specified as part of @ocra_suite, plus one terminating NUL char.
- *
- * Returns: on success, %OATH_OK (zero) is returned, otherwise an error code is
- *   returned.
- *
- * Since: 2.4.0
- **/
 
 enum challenge_t {
     HEX,
@@ -89,6 +59,39 @@ int strtouint(char *string, uint8_t *uint) {
     return 0;
 }
 
+/**
+ * ocra_generate:
+ * @secret: the shared secret string
+ * @secret_length: length of @secret
+ * @ocra_suite: string with information about used hash algorithms and input
+ * @ocra_suite_length: length of @ocra_suite
+ * @counter: counter value, optional (see @ocra_suite)
+ * @challenges: client/server challenge values, byte-array, mandatory
+ * @challenges_length: length of @challenges
+ * @pHash: hashed password value, optional (see @ocra_suite)
+ * @session: static data about current session, optional (see @ocra-suite)
+ * @timestamp: current timestamp, optional (see @ocra_suite)
+ * @output_ocra: output buffer,
+ *
+ * Generate a truncated hash-value used for challenge-response-based
+ * authentication according to the OCRA algorithm described in RFC 6287. 
+ * Besides the mandatory challenge(s), additional input is optional.
+ *
+ * The string @ocra_suite denotes which mode of OCRA is to be used. Furthermore
+ * it contains information about which of the possible optional data inputs are
+ * to be used, and how.
+ *
+ * Numeric challenges must be converted to base16 before passing as byte-array.
+ *
+ * The output buffer @output_ocra must have room for at least as many digits as
+ * specified as part of @ocra_suite, plus one terminating NUL char.
+ *
+ * Returns: on success, %OATH_OK (zero) is returned, otherwise an error code is
+ *   returned.
+ *
+ * Since: 2.4.0
+ **/
+
 int
 oath_ocra_generate(const char *secret, size_t secret_length, 
         char *ocra_suite, size_t ocra_suite_length, 
@@ -103,13 +106,17 @@ oath_ocra_generate(const char *secret, size_t secret_length,
 
     uint8_t digits;
 
-    uint8_t challenge_length, session_length=0, time_step_size, use_counter=0;
+    uint8_t challenge_length, session_length=0, time_step_size;
+    uint8_t use_counter=0;
+
     enum time_step_t time_step_unit = NO_TIMESTAMP;
     enum challenge_t challenge_type;
     enum hash_type password_hash = NO_HASH;
     enum hash_type ocra_hash = NO_HASH;
 
     char suite_tmp[strlen(ocra_suite)]; //needed as working copy for strtok_r
+
+    int rc;
 
     strncpy(suite_tmp,ocra_suite,strlen(ocra_suite)+1);
     printf("OCRA Suite \n%s\n",ocra_suite);
@@ -229,6 +236,12 @@ oath_ocra_generate(const char *secret, size_t secret_length,
             printf("challenge specification not correct (not QFXX)\n");
             return -1;
         }
+
+        if(challenges_length > 128) {
+            printf("challenge string too long!\n");
+            return -1;
+        }
+
         datainput_length += 128; //challenges need zero-padding anyway!
         printf("challenge specified\n");
         tmp = strtok_r (NULL,"-",&save_ptr_inner);
@@ -346,23 +359,25 @@ oath_ocra_generate(const char *secret, size_t secret_length,
     memcpy(curr_ptr,ocra_suite,ocra_suite_length);
     curr_ptr += ocra_suite_length;
 
-    curr_ptr[0] = 0x00;
+    curr_ptr[0] = '\0';
     curr_ptr ++;
 
     if(use_counter) {
         char tmp_str[16];
         sprintf(tmp_str, "%016" PRIX64, counter );
         size_t len = 8;
-        oath_hex2bin(tmp_str,curr_ptr,&len);
+        char tmp_str2[len];
+        rc=oath_hex2bin(tmp_str,tmp_str2,&len);
+        memcpy(curr_ptr,tmp_str2,8);
         curr_ptr+=8;
     }
 
     memcpy(curr_ptr,challenges,challenges_length);
     curr_ptr+=challenges_length;
 
-    if(challenge_length<128) {
-        memset(curr_ptr,'\0',(128-challenge_length));
-        curr_ptr+=(128-challenge_length);
+    if(challenges_length<128) {
+        memset(curr_ptr,'\0',(128-challenges_length));
+        curr_ptr+=(128-challenges_length);
     }
 
     switch(password_hash) {
@@ -420,33 +435,46 @@ oath_ocra_generate(const char *secret, size_t secret_length,
 
     printf("BYTE_ARRAY: %d\n",datainput_length);
 
-    printf("\n\n");
-
     char hexstring[datainput_length*2+1];
     oath_bin2hex(byte_array,datainput_length,hexstring);
 
     printf(hexstring);
     printf("\n");
 
-    char hs[GC_SHA1_DIGEST_SIZE];
+    char *hs;
+    size_t hs_size;
 
-    printf("Calculating hash, key: %s (length %d)\n",secret,secret_length);
-    int rc = gc_hmac_sha1 (secret, secret_length,
-            byte_array, sizeof (byte_array), hs);
+    switch(ocra_hash) {
+        case SHA1:
+            hs_size = GC_SHA1_DIGEST_SIZE;
+            hs = (char *) malloc(hs_size*sizeof(char));
+            rc = gc_hmac_sha1 (secret, secret_length,
+                    byte_array, sizeof(byte_array), 
+                    hs);
+            break;
+
+            /*   case SHA256:
+                 hs_size = GC_SHA256_DIGEST_SIZE;
+                 hs = (char *) malloc(hs_size*sizeof(char));
+                 printf("Calculating SHA256, key: %s (length %d)\n",secret,secret_length);
+                 rc = gc_hmac_sha256 (secret, secret_length,
+                 byte_array, sizeof(byte_array), 
+                 hs);
+                 break;*/
+
+        default:
+            printf("unsupported hash\n");
+            return -1;
+    }
 
     long S;
-    uint8_t offset = hs[sizeof (hs) - 1] & 0x0f;
+    uint8_t offset = hs[hs_size - 1] & 0x0f;
 
     S = (((hs[offset] & 0x7f) << 24)
             | ((hs[offset + 1] & 0xff) << 16)
             | ((hs[offset + 2] & 0xff) << 8) | ((hs[offset + 3] & 0xff)));
 
-    printf ("offset is %d hash is ", offset);
-    for (i = 0; i < 20; i++)
-        printf ("%02x ", hs[i] & 0xFF);
-    printf ("\n");
-
-    printf ("value: %d\n", S);
+    free(hs);
 
     switch (digits)
     {
@@ -493,8 +521,7 @@ oath_ocra_generate(const char *secret, size_t secret_length,
             return OATH_PRINTF_ERROR;
     }
 
-    printf(output_ocra);
-    printf("\n");
+    printf("OCRA: %s\n\n",output_ocra);
 
     return OATH_OK;
 }
