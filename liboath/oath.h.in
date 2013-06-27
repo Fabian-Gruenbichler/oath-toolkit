@@ -299,6 +299,8 @@ oath_totp_validate3_callback (const char *secret,
 			      oath_validate_strcmp_function strcmp_otp,
 			      void *strcmp_handle);
 
+/* OCRA */
+
 extern OATHAPI int
 oath_ocra_generate(const char *secret, 
 			size_t secret_length, 

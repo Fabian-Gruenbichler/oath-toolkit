@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <string.h> //for tokenization
 #include <ctype.h>
+#include <inttypes.h>
 #include "gc.h"
 
 /**
@@ -59,9 +60,9 @@
  **/
 
 enum challenge_t {
-   HEX,
-   ALPHA,
-   NUM
+    HEX,
+    ALPHA,
+    NUM
 };
 
 enum hash_type {
@@ -90,246 +91,411 @@ int strtouint(char *string, uint8_t *uint) {
 
 int
 oath_ocra_generate(const char *secret, size_t secret_length, 
-            char *ocra_suite, size_t ocra_suite_length, 
-            uint64_t counter, char *challenges, 
-            size_t challenges_length, char *pHash, 
-            char *session, time_t timestamp, char *output_ocra) {
+        char *ocra_suite, size_t ocra_suite_length, 
+        uint64_t counter, char *challenges, 
+        size_t challenges_length, char *pHash, 
+        char *session, time_t timestamp, char *output_ocra) {
 
     char *alg, *crypto, *datainput, *tmp;
     char *save_ptr_inner, *save_ptr_outer;
+
+    int i;
+
     uint8_t digits;
 
-    uint8_t challenge_length, session_length=0, time_step_size, use_counter;
+    uint8_t challenge_length, session_length=0, time_step_size, use_counter=0;
     enum time_step_t time_step_unit = NO_TIMESTAMP;
     enum challenge_t challenge_type;
     enum hash_type password_hash = NO_HASH;
     enum hash_type ocra_hash = NO_HASH;
-    
+
+    char suite_tmp[strlen(ocra_suite)]; //needed as working copy for strtok_r
+
+    strncpy(suite_tmp,ocra_suite,strlen(ocra_suite)+1);
+    printf("OCRA Suite \n%s\n",ocra_suite);
+
+    alg = strtok_r (suite_tmp,":",&save_ptr_outer);
+    if(alg == NULL)
+    {
+        printf("alg tokenization returned NULL!\n");
+        return -1;
+    }
+    if(strcasecmp(alg,"OCRA-1") != 0) {
+        printf("unsupported algorithm requested: %s\n",alg);
+        return -1;
+    }
+
+    printf("ALG: %s\n",alg);
+
+    crypto = strtok_r (NULL,":",&save_ptr_outer);
+    if(crypto == NULL) {
+        printf("crypto tokenization returned NULL!\n");
+        return -1;
+    }
+    tmp = strtok_r (crypto,"-",&save_ptr_inner);
+    if(tmp == NULL) {
+        printf("hash family tokenization returned NULL!\n");
+        return -1;
+    }
+    if(strcasecmp(tmp,"HOTP")!=0) {
+        printf("only HOTP is supported as hash family (was: %s)\n",tmp);
+        return -1;
+    }
+    tmp = strtok_r (NULL,"-",&save_ptr_inner);
+    if(tmp == NULL) {
+        printf("hash funktion tokenization returned NULL\n");
+        return -1;
+    }
+    if(strcasecmp(tmp,"SHA1")==0) {
+        ocra_hash = SHA1;
+    } else if (strcasecmp(tmp,"SHA256") == 0) {
+        ocra_hash = SHA256;
+    } else if (strcasecmp(tmp,"SHA512") != 0 ) {
+        ocra_hash = SHA512;
+    } else {
+        printf("only SHA1, 256 and 512 are supported as hash algorithms (was: %s)\n",tmp);
+        return -1;
+    }
+
+    printf("HASH: %s\n",tmp);
+
+    tmp = strtok_r (NULL,"-",&save_ptr_inner);
+    if(tmp == NULL) {
+        printf("truncation digits tokenization returned NULL\n");
+        return -1;
+    }
+    if(strtouint(tmp,&digits)!=0) {
+        printf("converting truncation digits failed.\n");
+        return -1;
+    }
+    if(digits!=0 && (digits<4 || digits>10)) {
+        printf("truncation digits must either be 0 or between 4 and 10! (%d)\n",digits);
+        return -1;
+    }
+
+    printf("DIGITS: %d\n",digits);
+
+    datainput = strtok_r (NULL,":",&save_ptr_outer);
+    if(datainput == NULL) {
+        printf("data input tokenization returned NULL!\n");
+        return -1;
+    }
+
+    size_t datainput_length = ocra_suite_length+1; //in byte
+    printf("DATA: %s\n",datainput);
+
+    tmp = strtok_r (datainput,"-",&save_ptr_inner);
+    if(tmp==NULL) {
+        printf("NULL returned while trying to tokenize datainput\n");
+        return -1;
+    }
+    if(tolower(tmp[0])=='c' && tmp[1] =='\0') {
+        datainput_length += 8;
+        use_counter = 1;
+        tmp = strtok_r (NULL,"-",&save_ptr_inner);
+        printf("counter specified\n");
+    }
+
+    if(tmp==NULL) {
+        printf("NULL returned while trying to tokenize datainput\n");
+        return -1;
+    }
+    if(tolower(tmp[0])=='q') {
+        tmp++;
+        switch(tolower(tmp[0])) {
+            case 'a':
+                challenge_type = ALPHA;
+                break;
+            case 'n':
+                challenge_type = NUM;
+                break;
+            case 'h':
+                challenge_type = HEX;
+                break;
+            default:
+                printf("challenge type wrongly specified: %c\n",tmp[0]);
+                return -1;
+        }
+        tmp++;
+        if(strtouint(tmp,&challenge_length)!=0) {
+            printf("couldn't convert challenge length!\n");
+            return -1;
+        }
+        if(challenge_length<4 || challenge_length > 64) {
+            printf("challenge length not between 4 and 64\n");
+            return -1;
+        }
+        if(tmp[2]!='\0'){
+            printf("challenge specification not correct (not QFXX)\n");
+            return -1;
+        }
+        datainput_length += 128; //challenges need zero-padding anyway!
+        printf("challenge specified\n");
+        tmp = strtok_r (NULL,"-",&save_ptr_inner);
+    } else {
+        printf("mandatory challenge string not found in datainput, aborting\n");
+        printf(tmp);
+        return -1;
+    }
+
+    while(tmp!=NULL) {
+        switch(tolower(tmp[0])) {
+            case 'p':
+                if(password_hash != NO_HASH) {
+                    printf("password hash type specified twice\n");
+                    return -1;
+                }
+                tmp++;
+                if(strcasecmp(tmp,"SHA1")==0) {
+                    password_hash = SHA1;
+                    datainput_length += 20;
+                } else if (strcasecmp(tmp,"SHA256")) {
+                    password_hash = SHA256;
+                    datainput_length += 32;
+                } else if (strcasecmp(tmp,"SHA512")) {
+                    password_hash = SHA512;
+                    datainput_length += 64;
+                } else {
+                    printf("incorrect password hash function specified\n");
+                    return -1;
+                }
+                printf("password hash function specified\n");
+                break;
+
+            case 's':
+                if(session_length>0) {
+                    printf("session specified twice\n");
+                    return -1;
+                }
+                tmp++;
+                if(strtouint(tmp,&session_length)!=0) {
+                    printf("couldn't convert session length specification\n");
+                    return -1;
+                }
+                if(session_length>512) {
+                    printf("session length too big (>512)\n");
+                    return -1;
+                }
+                if(tmp[3]!='\0') {
+                    printf("session length specification not correct (not SXXX)\n");
+                    return -1;
+                }
+                datainput_length+=session_length;
+                printf("session information length specified\n");
+                break;
+
+            case 't':
+                if(time_step_unit != NO_TIMESTAMP) {
+                    printf("timestep size specified twice\n");
+                    return -1;
+                }
+                tmp++;
+                for (time_step_size=0; (*tmp-'0'<10) && (*tmp-'0'>=0); tmp++) 
+                    time_step_size=10*time_step_size+(*tmp-'0');
+                switch (tolower(tmp[0])) {
+                    case 's':
+                        if(time_step_size>59 || time_step_size==0) {
+                            printf("time_step_size invalid\n");
+                            return -1;
+                        }
+                        time_step_unit = SECONDS;
+                        break;
+
+                    case 'm':
+                        if(time_step_size>59 || time_step_size==0) {
+                            printf("time_step_size invalid\n");
+                            return -1;
+                        }
+                        time_step_unit = MINUTES;
+                        break;
+
+                    case 'h':
+                        if(time_step_size>48) {
+                            printf("time_step_size invalid\n");
+                            return -1;
+                        }
+                        time_step_unit = HOURS;
+                        break;
+
+                    default:
+                        printf("invalid timestep unit specified\n");
+                        return -1;
+                }
+                if(tmp[1]!='\0') {
+                    printf("timestep specification not correctly formatted (not TXXU)\n");
+                    return -1;
+                }
+                datainput_length+=8;
+                printf("timestep size and unit specified\n");
+                break;
+
+            default:
+                printf("invalid data input string.. (%c)\n",tmp[0]);
+                return -1;
+
+        }
+
+        tmp = strtok_r (NULL,"-",&save_ptr_inner);
+    }
+
+    printf("parsing data input done\n");
+
+    char byte_array[datainput_length];
+    char *curr_ptr = byte_array;
+
+    memcpy(curr_ptr,ocra_suite,ocra_suite_length);
+    curr_ptr += ocra_suite_length;
+
+    curr_ptr[0] = 0x00;
+    curr_ptr ++;
+
+    if(use_counter) {
+        char tmp_str[16];
+        sprintf(tmp_str, "%016" PRIX64, counter );
+        size_t len = 8;
+        oath_hex2bin(tmp_str,curr_ptr,&len);
+        curr_ptr+=8;
+    }
+
+    memcpy(curr_ptr,challenges,challenges_length);
+    curr_ptr+=challenges_length;
+
+    if(challenge_length<128) {
+        memset(curr_ptr,'0',(128-challenge_length));
+        curr_ptr+=(128-challenge_length);
+    }
+
+    switch(password_hash) {
+        case SHA1:
+            memcpy(curr_ptr,pHash,20);
+            curr_ptr+=20;
+            break;
+
+        case SHA256:
+            memcpy(curr_ptr,pHash,32);
+            curr_ptr+=32;
+            break;
+
+        case SHA512:
+            memcpy(curr_ptr,pHash,64);
+            curr_ptr+=64;
+            break;
+
+        default:
+            break;
+    }
+
+    if(session_length>0) {
+        memcpy(curr_ptr,session,session_length);
+        curr_ptr+=session_length;
+    }
+
+    uint64_t time_steps = 0;
+
+    switch(time_step_unit) {
+
+        case HOURS:
+            time_steps = timestamp / (60 * 60 * time_step_size);
+            break;
+
+        case MINUTES:
+            time_steps = timestamp / (60 * 60 * time_step_size);
+            break;
+
+        case SECONDS:
+            time_steps = timestamp / time_step_size;
+            break;
+
+        default:
+            break;
+    }
+
+    if(time_step_unit != NO_TIMESTAMP) {
+        char tmp_str[16];
+        sprintf(tmp_str, "%016" PRIX64, time_steps );
+        size_t len = 8;
+        oath_hex2bin(tmp_str,curr_ptr,&len);
+        curr_ptr+=8;
+    }
+
+    printf("BYTE_ARRAY: %d\n",datainput_length);
+
+    printf("\n\n");
+
+    char hexstring[datainput_length*2+1];
+    oath_bin2hex(byte_array,datainput_length,hexstring);
+
+    printf(hexstring);
+    printf("\n");
+
+    char hs[GC_SHA1_DIGEST_SIZE];
+
+    printf("Calculating hash, key: %s (length %d)\n",secret,secret_length);
+    int rc = gc_hmac_sha1 (secret, secret_length,
+            byte_array, sizeof (byte_array), hs);
+
+    long S;
+    uint8_t offset = hs[sizeof (hs) - 1] & 0x0f;
+
+    S = (((hs[offset] & 0x7f) << 24)
+            | ((hs[offset + 1] & 0xff) << 16)
+            | ((hs[offset + 2] & 0xff) << 8) | ((hs[offset + 3] & 0xff)));
+
+    printf ("offset is %d hash is ", offset);
+    for (i = 0; i < 20; i++)
+        printf ("%02x ", hs[i] & 0xFF);
+    printf ("\n");
+
+    printf ("value: %d\n", S);
+
+    switch (digits)
+    {
+        case 4:
+            S = S % 10000;
+            break;
+
+        case 5:
+            S = S % 100000;
+            break;
+
+        case 6:
+            S = S % 1000000;
+            break;
+
+        case 7:
+            S = S % 10000000;
+            break;
+
+        case 8:
+            S = S % 100000000;
+            break;
+
+        case 9:
+            S = S % 1000000000;
+            break;
+
+        case 10:
+            S = S % 10000000000;
+            break;
+
+        case 0:
+            break;
+
+        default:
+            return OATH_INVALID_DIGITS;
+            break;
+    }
 
     {
-        char suite_tmp[strlen(ocra_suite)]; //needed as working copy for strtok_r
-        strncpy(suite_tmp,ocra_suite,strlen(ocra_suite)+1);
-        printf("OCRA Suite \n%s\n",ocra_suite);
-        
-        alg = strtok_r (suite_tmp,":",&save_ptr_outer);
-        if(alg == NULL)
-        {
-            printf("alg tokenization returned NULL!\n");
-            return -1;
-        }
-        if(strcasecmp(alg,"OCRA-1") != 0) {
-            printf("unsupported algorithm requested: %s\n",alg);
-            return -1;
-        }
-
-        printf("ALG: %s\n",alg);
-
-        crypto = strtok_r (NULL,":",&save_ptr_outer);
-        if(crypto == NULL) {
-            printf("crypto tokenization returned NULL!\n");
-            return -1;
-        }
-        tmp = strtok_r (crypto,"-",&save_ptr_inner);
-        if(tmp == NULL) {
-            printf("hash family tokenization returned NULL!\n");
-            return -1;
-        }
-        if(strcasecmp(tmp,"HOTP")!=0) {
-            printf("only HOTP is supported as hash family (was: %s)\n",tmp);
-            return -1;
-        }
-        tmp = strtok_r (NULL,"-",&save_ptr_inner);
-        if(tmp == NULL) {
-            printf("hash funktion tokenization returned NULL\n");
-            return -1;
-        }
-        if(strcasecmp(tmp,"SHA1")==0) {
-            ocra_hash = SHA1;
-        } else if (strcasecmp(tmp,"SHA256") == 0) {
-            ocra_hash = SHA256;
-        } else if (strcasecmp(tmp,"SHA512") != 0 ) {
-            ocra_hash = SHA512;
-        } else {
-            printf("only SHA1, 256 and 512 are supported as hash algorithms (was: %s)\n",tmp);
-            return -1;
-        }
-
-        printf("HASH: %s\n",tmp);
-
-        tmp = strtok_r (NULL,"-",&save_ptr_inner);
-        if(tmp == NULL) {
-            printf("truncation digits tokenization returned NULL\n");
-            return -1;
-        }
-        if(strtouint(tmp,&digits)!=0) {
-            printf("converting truncation digits failed.\n");
-            return -1;
-        }
-        if(digits!=0 && (digits<4 || digits>10)) {
-            printf("truncation digits must either be 0 or between 4 and 10! (%d)\n",digits);
-            return -1;
-        }
-        
-        printf("DIGITS: %d\n",digits);
-
-        datainput = strtok_r (NULL,":",&save_ptr_outer);
-        if(datainput == NULL) {
-            printf("data input tokenization returned NULL!\n");
-            return -1;
-        }
-        
-        size_t datainput_length = 0; //in byte
-        printf("DATA: %s\n",datainput);
-        tmp = strtok_r (datainput,"-",&save_ptr_inner);
-        if(tmp==NULL) {
-            printf("NULL returned while trying to tokenize datainput\n");
-            return -1;
-        }
-        if(tolower(tmp[0])=='c' && tmp[1] =='\0') {
-            datainput_length += 8;
-            use_counter = 1;
-            tmp = strtok_r (NULL,"-",&save_ptr_inner);
-        }
-        if(tmp==NULL) {
-            printf("NULL returned while trying to tokenize datainput\n");
-            return -1;
-        }
-        if(tolower(tmp[0])=='q') {
-            tmp++;
-            switch(tolower(tmp[0])) {
-                case 'a':
-                    challenge_type = ALPHA;
-                    break;
-                case 'n':
-                    challenge_type = NUM;
-                    break;
-                case 'h':
-                    challenge_type = HEX;
-                    break;
-                default:
-                    printf("challenge type wrongly specified: %c\n",tmp[0]);
-                    return -1;
-            }
-            tmp++;
-            if(strtouint(tmp,&challenge_length)!=0) {
-                printf("couldn't convert challenge length!\n");
-                return -1;
-            }
-            if(challenge_length<4 || challenge_length > 64) {
-                printf("challenge length not between 4 and 64\n");
-                return -1;
-            }
-            if(tmp[2]!='\0'){
-                printf("challenge specification not correct (not QFXX)\n");
-                return -1;
-            }
-            datainput_length += 128; //challenges need zero-padding anyway!
-            tmp = strtok_r (NULL,"-",&save_ptr_inner);
-        } else {
-            printf("mandatory challenge string not found in datainput, aborting\n");
-            printf(tmp);
-            return -1;
-        }
-        
-        while(tmp!=NULL) {
-            switch(tolower(tmp[0])) {
-                case 'p':
-                    if(password_hash != NO_HASH) {
-                        printf("password hash type specified twice\n");
-                        return -1;
-                    }
-                    tmp++;
-                    if(strcasecmp(tmp,"SHA1")==0) {
-                        password_hash = SHA1;
-                        datainput_length += 20;
-                    } else if (strcasecmp(tmp,"SHA256")) {
-                        password_hash = SHA256;
-                        datainput_length += 32;
-                    } else if (strcasecmp(tmp,"SHA512")) {
-                        password_hash = SHA512;
-                        datainput_length += 64;
-                    } else {
-                        printf("incorrect password hash function specified\n");
-                        return -1;
-                    }
-                    printf("password hash function specified\n");
-                    break;
-
-                case 's':
-                    if(session_length>0) {
-                        printf("session specified twice\n");
-                        return -1;
-                    }
-                    tmp++;
-                    if(strtouint(tmp,&session_length)!=0) {
-                        printf("couldn't convert session length specification\n");
-                        return -1;
-                    }
-                    if(session_length>512) {
-                        printf("session length too big (>512)\n");
-                        return -1;
-                    }
-                    if(tmp[3]!='\0') {
-                        printf("session length specification not correct (not SXXX)\n");
-                        return -1;
-                    }
-                    datainput_length+=session_length;
-                    printf("session information length specified\n");
-                    break;
-
-                case 't':
-                    if(time_step_unit != NO_TIMESTAMP) {
-                        printf("timestep size specified twice\n");
-                        return -1;
-                    }
-                    tmp++;
-                    for (time_step_size=0; (*tmp-'0'<10) && (*tmp-'0'>=0); tmp++) 
-                        time_step_size=10*time_step_size+(*tmp-'0');
-                    switch (tolower(tmp[0])) {
-                        case 's':
-                            if(time_step_size>59 || time_step_size==0) {
-                                printf("time_step_size invalid\n");
-                                return -1;
-                            }
-                            time_step_unit = SECONDS;
-                            break;
-
-                        case 'm':
-                            if(time_step_size>59 || time_step_size==0) {
-                                printf("time_step_size invalid\n");
-                                return -1;
-                            }
-                            time_step_unit = MINUTES;
-                            break;
-
-                        case 'h':
-                            if(time_step_size>48) {
-                                printf("time_step_size invalid\n");
-                                return -1;
-                            }
-                            time_step_unit = HOURS;
-                            break;
-
-                        default:
-                            printf("invalid timestep unit specified\n");
-                            return -1;
-                    }
-                    if(tmp[1]!='\0') {
-                        printf("timestep specification not correctly formatted (not TXXU)\n");
-                        return -1;
-                    }
-                    datainput_length+=8;
-                    printf("timestep size and unit specified\n");
-                    break;
-
-                default:
-                    printf("invalid data input string.. (%c)\n",tmp[0]);
-                    return -1;
-            }
-            tmp = strtok_r (NULL,"-",&save_ptr_inner);
-        }
-
-        return OATH_OK;
+        int len = snprintf (output_ocra, digits + 1, "%.*ld", digits, S);
+        output_ocra[digits] = '\0';
+        if (len <= 0 || ((unsigned) len) != digits)
+            return OATH_PRINTF_ERROR;
     }
+
+    printf(output_ocra);
+    printf("\n");
+
+    return OATH_OK;
 }
 

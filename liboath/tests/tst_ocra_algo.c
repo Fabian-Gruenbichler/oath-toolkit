@@ -39,12 +39,22 @@ main (void)
         printf ("oath_init: %d\n", rc);
         return 1;
     }
-    const char *secret = "000000";
-    char suite[] = "OCRA-1:HOTP-SHA1-5:C-QN05-S064-T05H-PSHA1";
+    const char *secret = "12345678901234567890";
+    char suite[] = "OCRA-1:HOTP-SHA1-6:QN08";
+//    char suite[] = "OCRA-1:HOTP-SHA1-5:C-QA26-PSHA1-S021-T30S";
+    uint64_t counter = 12356789;
+    char challenges[] = "99999999";
+    char pHash[20] = "\xa9\x4a\x8f\xe5\xcc\xb1\x9b\xa6\x1c\x4c\x08\x73\xd3\x91\xe9\x87\x98\x2f\xbb\xd3";
+    char session[] = "blablablablablablabla";
+    time_t now = 90;
+    char output_ocra[9];
+
+    printf("length of key: %d\n",strlen(secret));
 
     rc = oath_ocra_generate(secret, strlen(secret), 
             suite, strlen(suite), 
-            0, NULL, 0, NULL, NULL, NULL, NULL);
+            counter, challenges, 
+            strlen(challenges), pHash, session, now, output_ocra);
 
     if (rc != OATH_OK) {
         printf ("oath_ocra_generate: %d\n",rc);
