@@ -311,8 +311,22 @@ oath_ocra_generate(const char *secret,
 			size_t challenges_length, 
 			char *pHash, 
 			char *session, 
-			time_t timestamp, 
+			time_t now, 
 			char *output_ocra);
+
+extern OATHAPI int
+oath_ocra_validate(const char *secret, 
+			size_t secret_length, 
+			char *ocra_suite, 
+			size_t ocra_suite_length, 
+			uint64_t counter, 
+			char *challenges, 
+			size_t challenges_length, 
+			char *pHash, 
+			char *session, 
+			time_t now, 
+			char *validate_ocra);
+
 
 /* Usersfile */
 

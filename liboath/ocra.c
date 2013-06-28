@@ -70,7 +70,7 @@ int strtouint(char *string, uint8_t *uint) {
  * @challenges_length: length of @challenges
  * @pHash: hashed password value, optional (see @ocra_suite)
  * @session: static data about current session, optional (see @ocra-suite)
- * @timestamp: current timestamp, optional (see @ocra_suite)
+ * @now: current timestamp, optional (see @ocra_suite)
  * @output_ocra: output buffer,
  *
  * Generate a truncated hash-value used for challenge-response-based
@@ -97,7 +97,7 @@ oath_ocra_generate(const char *secret, size_t secret_length,
         char *ocra_suite, size_t ocra_suite_length, 
         uint64_t counter, char *challenges, 
         size_t challenges_length, char *pHash, 
-        char *session, time_t timestamp, char *output_ocra) {
+        char *session, time_t now, char *output_ocra) {
 
     char *alg, *crypto, *datainput, *tmp;
     char *save_ptr_inner, *save_ptr_outer;
@@ -119,7 +119,6 @@ oath_ocra_generate(const char *secret, size_t secret_length,
     int rc;
 
     strncpy(suite_tmp,ocra_suite,strlen(ocra_suite)+1);
-    printf("OCRA Suite \n%s\n",ocra_suite);
 
     alg = strtok_r (suite_tmp,":",&save_ptr_outer);
     if(alg == NULL)
@@ -131,8 +130,6 @@ oath_ocra_generate(const char *secret, size_t secret_length,
         printf("unsupported algorithm requested: %s\n",alg);
         return -1;
     }
-
-    printf("ALG: %s\n",alg);
 
     crypto = strtok_r (NULL,":",&save_ptr_outer);
     if(crypto == NULL) {
@@ -164,8 +161,6 @@ oath_ocra_generate(const char *secret, size_t secret_length,
         return -1;
     }
 
-    printf("HASH: %s\n",tmp);
-
     tmp = strtok_r (NULL,"-",&save_ptr_inner);
     if(tmp == NULL) {
         printf("truncation digits tokenization returned NULL\n");
@@ -180,8 +175,6 @@ oath_ocra_generate(const char *secret, size_t secret_length,
         return -1;
     }
 
-    printf("DIGITS: %d\n",digits);
-
     datainput = strtok_r (NULL,":",&save_ptr_outer);
     if(datainput == NULL) {
         printf("data input tokenization returned NULL!\n");
@@ -189,7 +182,6 @@ oath_ocra_generate(const char *secret, size_t secret_length,
     }
 
     size_t datainput_length = ocra_suite_length+1; //in byte
-    printf("DATA: %s\n",datainput);
 
     tmp = strtok_r (datainput,"-",&save_ptr_inner);
     if(tmp==NULL) {
@@ -200,7 +192,6 @@ oath_ocra_generate(const char *secret, size_t secret_length,
         datainput_length += 8;
         use_counter = 1;
         tmp = strtok_r (NULL,"-",&save_ptr_inner);
-        printf("counter specified\n");
     }
 
     if(tmp==NULL) {
@@ -243,7 +234,6 @@ oath_ocra_generate(const char *secret, size_t secret_length,
         }
 
         datainput_length += 128; //challenges need zero-padding anyway!
-        printf("challenge specified\n");
         tmp = strtok_r (NULL,"-",&save_ptr_inner);
     } else {
         printf("mandatory challenge string not found in datainput, aborting\n");
@@ -272,7 +262,6 @@ oath_ocra_generate(const char *secret, size_t secret_length,
                     printf("incorrect password hash function specified\n");
                     return -1;
                 }
-                printf("password hash function specified\n");
                 break;
 
             case 's':
@@ -294,7 +283,6 @@ oath_ocra_generate(const char *secret, size_t secret_length,
                     return -1;
                 }
                 datainput_length+=session_length;
-                printf("session information length specified\n");
                 break;
 
             case 't':
@@ -339,19 +327,14 @@ oath_ocra_generate(const char *secret, size_t secret_length,
                     return -1;
                 }
                 datainput_length+=8;
-                printf("timestep size and unit specified\n");
                 break;
 
             default:
                 printf("invalid data input string.. (%c)\n",tmp[0]);
                 return -1;
-
         }
-
         tmp = strtok_r (NULL,"-",&save_ptr_inner);
     }
-
-    printf("parsing data input done\n");
 
     char byte_array[datainput_length];
     char *curr_ptr = byte_array;
@@ -408,17 +391,16 @@ oath_ocra_generate(const char *secret, size_t secret_length,
     uint64_t time_steps = 0;
 
     switch(time_step_unit) {
-
         case HOURS:
-            time_steps = timestamp / (60 * 60 * time_step_size);
+            time_steps = now / (60 * 60 * time_step_size);
             break;
 
         case MINUTES:
-            time_steps = timestamp / (60 * 60 * time_step_size);
+            time_steps = now / (60 * time_step_size);
             break;
 
         case SECONDS:
-            time_steps = timestamp / time_step_size;
+            time_steps = now / time_step_size;
             break;
 
         default:
@@ -433,13 +415,12 @@ oath_ocra_generate(const char *secret, size_t secret_length,
         curr_ptr+=8;
     }
 
-    printf("BYTE_ARRAY: %d\n",datainput_length);
 
     char hexstring[datainput_length*2+1];
     oath_bin2hex(byte_array,datainput_length,hexstring);
 
-    printf(hexstring);
-    printf("\n");
+    //printf("BYTE_ARRAY: %d\n",datainput_length);
+    //printf(hexstring);
 
     char *hs;
     size_t hs_size;
@@ -521,8 +502,33 @@ oath_ocra_generate(const char *secret, size_t secret_length,
             return OATH_PRINTF_ERROR;
     }
 
-    printf("OCRA: %s\n\n",output_ocra);
+    //printf("OCRA: %s\n\n",output_ocra);
 
     return OATH_OK;
 }
 
+
+int
+oath_ocra_validate(const char *secret, size_t secret_length, 
+        char *ocra_suite, size_t ocra_suite_length, 
+        uint64_t counter, char *challenges, 
+        size_t challenges_length, char *pHash, 
+        char *session, time_t now, char *validate_ocra) {
+    
+    int rc;
+    char generated_ocra[11]; //max 10 digits
+
+    rc = oath_ocra_generate(secret, secret_length,
+                            ocra_suite, ocra_suite_length,
+                            counter, challenges,
+                            challenges_length, pHash,
+                            session, now, generated_ocra);
+
+    if(rc!=OATH_OK)
+        return rc;
+
+    if(strcmp(generated_ocra,validate_ocra)!=0)
+        return OATH_STRCMP_ERROR;
+
+    return OATH_OK;
+}
