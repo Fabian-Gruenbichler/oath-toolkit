@@ -30,7 +30,8 @@ ctests = \
 	tst_hotp_validate \
 	tst_totp_algo \
 	tst_totp_validate \
-	tst_ocra_algo
+	tst_ocra_algo \
+	tst_ocra_validate
 
 check_PROGRAMS = $(ctests) tst_usersfile
 dist_check_SCRIPTS = tst_usersfile.sh

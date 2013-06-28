@@ -81,4 +81,5 @@ LIBOATH_2.4.0
 {
   global:
     oath_ocra_generate;
+    oath_ocra_validate;
 } LIBOATH_2.2.0;

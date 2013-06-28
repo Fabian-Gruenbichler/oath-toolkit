@@ -25,17 +25,7 @@
 
 #include <stdio.h>
 
-#define MAX_DIGIT 10
-#define MAX_ITER 20
-
-const char *secret1 = "12345678901234567890";
-const char *secret2 = "12345678901234567890123456789012";
-const char *secret3 = "1234567890123456789012345678901234567890123456789012345678901234";
 const char *pHash = "\x71\x10\xed\xa4\xd0\x9e\x06\x2a\xa5\xe4\xa3\x90\xb0\xa5\x72\xac\x0d\x2c\x02\x20";
-
-const char *suite1 = "OCRA-1:HOTP-SHA1-6:QN08";
-const char *suite2 = "OCRA-1:HOTP-SHA1-8:C-QN08-PSHA1"; // actually sha256
-const char *suite3 = "OCRA-1:HOTP-SHA1-8:QN08-PSHA1"; // 256
 
 const struct {
     char *secret;
@@ -43,7 +33,7 @@ const struct {
     uint64_t counter;
     char *challenges_hex;
     char *session;
-    time_t secs;
+    time_t now;
     char *ocra;
 } tv[] = {
     /* From RFC 6287. */
@@ -124,7 +114,7 @@ main (void)
                 tv[i].ocra_suite, strlen(tv[i].ocra_suite), 
                 tv[i].counter, challenges_bin, 
                 bin_length, pHash, 
-                tv[i].session, tv[i].secs, output_ocra);
+                tv[i].session, tv[i].now, output_ocra);
 
         if (rc != OATH_OK) {
             printf ("oath_ocra_generate at %d: %d\n",i,rc);
