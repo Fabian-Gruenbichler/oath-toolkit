@@ -15,15 +15,21 @@
 
 purpose "Generate and validate OATH one-time passwords."
 
-option "hotp" - "use event-based HOTP mode" flag on
+option "hotp" - "use event-based HOTP mode" flag off
 option "totp" - "use time-variant TOTP mode" flag off
+option "ocra" - "use OCRA mode" flag off
 
 option "base32" b "use base32 encoding of KEY instead of hex" flag off
-option "counter" c "HOTP counter value" longlong typestr="COUNTER" no
+option "counter" c "HOTP/OCRA counter value" longlong typestr="COUNTER" no
 option "time-step-size" s "TOTP time-step duration" string typestr="DURATION" default="30s" no
 option "start-time" S "when to start counting time steps for TOTP" string typestr="TIME" default="1970-01-01 00:00:00 UTC" no
-option "now" N "use this time as current time for TOTP" string typestr="TIME" default="now" no
+option "now" N "use this time as current time for TOTP and OCRA" string typestr="TIME" default="now" no
 option "digits" d "number of digits in one-time password" int typestr="DIGITS" no
 option "window" w "window of counter values to test when validating OTPs" int typestr="WIDTH" no
+
+option "suite" o "string specifying the ocra-suite parameters to use" string typestr="SUITE" no
+option "session-info" i "hex encoded string representing session information for OCRA" string typestr="SESSION" no
+option "challenges" C "hex encoded string representing the challenges for OCRA" string typestr="CHALLENGE" no
+option "phash" p "string representing the password hash for OCRA" string typestr="HASH" no
 
 option "verbose" v "explain what is being done" flag off
