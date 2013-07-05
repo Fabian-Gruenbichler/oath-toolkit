@@ -301,6 +301,38 @@ oath_totp_validate3_callback (const char *secret,
 
 /* OCRA */
 
+enum ocra_challenge_t {
+    HEX,
+    ALPHA,
+    NUM
+};
+
+enum ocra_hash_t {
+    NO_HASH,
+    SHA1,
+    SHA256,
+    SHA512
+};
+
+typedef struct ocra_suite {
+		uint8_t use_counter;
+		enum ocra_hash_t password_hash;
+		enum ocra_hash_t ocra_hash;
+		enum ocra_challenge_t challenge_type;
+		uint8_t challenge_length;
+		size_t challenges_length;
+		uint16_t timestamp_div;
+		uint8_t session_length;
+		uint8_t digits;
+		size_t datainput_length;
+} ocra_suite_t;
+
+extern OATHAPI int
+oath_ocra_parse_suite(char *ocra_suite, 
+            size_t ocra_suite_length,
+            size_t challenges_length,
+            ocra_suite_t *ocra_suite_info);
+
 extern OATHAPI int
 oath_ocra_generate(const char *secret, 
 			size_t secret_length, 
