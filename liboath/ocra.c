@@ -30,7 +30,6 @@
 #include "gc.h"
 
 
-
 int strtouint(char *string, uint8_t *uint) {
     if(*string == '\0')
         return -1;
@@ -342,7 +341,11 @@ oath_ocra_generate(const char *secret, size_t secret_length,
 
     ocra_suite_t ocra_suite_info;
 
-    oath_ocra_parse_suite(ocra_suite, ocra_suite_length, challenges_length, &ocra_suite_info);
+    int rc = oath_ocra_parse_suite(ocra_suite, ocra_suite_length, 
+                            challenges_length, &ocra_suite_info);
+
+    if(rc != OATH_OK)
+        return rc;
 
     char byte_array[ocra_suite_info.datainput_length];
     char *curr_ptr = byte_array;
@@ -427,7 +430,6 @@ oath_ocra_generate(const char *secret, size_t secret_length,
 
     char *hs;
     size_t hs_size;
-    int rc;
 
     switch(ocra_suite_info.ocra_hash) {
         case SHA1:
