@@ -31,10 +31,18 @@
 #include <errno.h>		/* For errno. */
 #include <sys/stat.h>		/* For S_IRUSR, S_IWUSR. */
 
+typedef enum oath_alg_t
+{
+    HOTP,
+    TOTP,
+    OCRA
+} oath_alg;
+
 static int
-parse_type (const char *str, unsigned *digits, unsigned *totpstepsize)
+parse_type (const char *str, oath_alg *alg, unsigned *digits, unsigned *totpstepsize, ocra_suite_t *ocra_suite_info)
 {
   *totpstepsize = 0;
+  *alg = HOTP;
   if (strcmp (str, "HOTP/E/6") == 0
       || strcmp (str, "HOTP/E") == 0 || strcmp (str, "HOTP") == 0)
     *digits = 6;
@@ -45,6 +53,7 @@ parse_type (const char *str, unsigned *digits, unsigned *totpstepsize)
   else if (strncmp (str, "HOTP/T30", 8) == 0)
     {
       *totpstepsize = 30;
+      *alg = TOTP;
       if (strcmp (str, "HOTP/T30") == 0 || strcmp (str, "HOTP/T30/6") == 0)
 	*digits = 6;
       else if (strcmp (str, "HOTP/T30/7") == 0)
@@ -57,6 +66,7 @@ parse_type (const char *str, unsigned *digits, unsigned *totpstepsize)
   else if (strncmp (str, "HOTP/T60", 8) == 0)
     {
       *totpstepsize = 60;
+      *alg = TOTP;
       if (strcmp (str, "HOTP/T60") == 0 || strcmp (str, "HOTP/T60/6") == 0)
 	*digits = 6;
       else if (strcmp (str, "HOTP/T60/7") == 0)
@@ -65,6 +75,13 @@ parse_type (const char *str, unsigned *digits, unsigned *totpstepsize)
 	*digits = 8;
       else
 	return -1;
+    }
+  else if (strncmp (str, "OCRA",4) == 0)
+    {
+      int rc = oath_ocra_parse_suite(str,strlen(str),ocra_suite_info);
+      if(rc != OATH_OK)
+        return -1;
+      *alg=OCRA;
     }
   else
     return -1;
@@ -93,18 +110,20 @@ parse_usersfile (const char *username,
     {
       char *saveptr;
       char *p = strtok_r (*lineptr, whitespace, &saveptr);
+      oath_alg alg;
       unsigned digits, totpstepsize;
       char secret[32];
       size_t secret_length = sizeof (secret);
       uint64_t start_moving_factor = 0;
       int rc = 0;
       char *prev_otp = NULL;
+      ocra_suite_t ocra_suite_info;
 
       if (p == NULL)
 	continue;
 
       /* Read token type */
-      if (parse_type (p, &digits, &totpstepsize) != 0)
+      if (parse_type (p, &alg, &digits, &totpstepsize,&ocra_suite_info) != 0)
 	continue;
 
       /* Read username */
@@ -187,31 +206,41 @@ parse_usersfile (const char *username,
       if (prev_otp && strcmp (prev_otp, otp) == 0)
 	return OATH_REPLAYED_OTP;
 
-      if (totpstepsize == 0)
-	rc = oath_hotp_validate (secret, secret_length,
-				 start_moving_factor, window, otp);
-      else if (prev_otp)
-	{
-	  int prev_otp_pos, this_otp_pos, tmprc;
-	  rc = oath_totp_validate2 (secret, secret_length,
-				    time (NULL), totpstepsize, 0, window,
-				    &this_otp_pos, otp);
-	  if (rc == OATH_INVALID_OTP)
+      switch(alg) {
+        case HOTP:
+	  rc = oath_hotp_validate (secret, secret_length,
+				   start_moving_factor, window, otp);
+          break;
+
+        case TOTP:
+          if (prev_otp)
 	    {
-	      (*skipped_users)++;
-	      continue;
+	      int prev_otp_pos, this_otp_pos, tmprc;
+	      rc = oath_totp_validate2 (secret, secret_length,
+		                        time (NULL), totpstepsize, 0, window,
+				        &this_otp_pos, otp);
+	      if (rc == OATH_INVALID_OTP)
+	        {
+	          (*skipped_users)++;
+	          continue;
+	        }
+	      if (rc < 0)
+	        return rc;
+	      tmprc = oath_totp_validate2 (secret, secret_length,
+				           time (NULL), totpstepsize, 0, window,
+				           &prev_otp_pos, prev_otp);
+	      if (tmprc >= 0 && prev_otp_pos >= this_otp_pos)
+	        return OATH_REPLAYED_OTP;
 	    }
-	  if (rc < 0)
-	    return rc;
-	  tmprc = oath_totp_validate2 (secret, secret_length,
-				       time (NULL), totpstepsize, 0, window,
-				       &prev_otp_pos, prev_otp);
-	  if (tmprc >= 0 && prev_otp_pos >= this_otp_pos)
-	    return OATH_REPLAYED_OTP;
-	}
-      else
-	rc = oath_totp_validate (secret, secret_length,
-				 time (NULL), totpstepsize, 0, window, otp);
+          else
+	    rc = oath_totp_validate (secret, secret_length,
+	                             time (NULL), totpstepsize, 0, window, otp);
+          break;
+          
+        default:
+          break;
+      }
+
       if (rc == OATH_INVALID_OTP)
 	{
 	  (*skipped_users)++;
