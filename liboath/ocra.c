@@ -55,7 +55,7 @@ int strtouint(char *string, uint8_t *uint) {
  **/
 
 int
-oath_ocra_parse_suite(char *ocra_suite, size_t ocra_suite_length, size_t challenges_length,
+oath_ocra_parse_suite(const char *ocra_suite, size_t ocra_suite_length,
         ocra_suite_t *ocra_suite_info) {
     char *alg, *crypto, *datainput, *tmp;
     char *save_ptr_inner, *save_ptr_outer;
@@ -67,7 +67,6 @@ oath_ocra_parse_suite(char *ocra_suite, size_t ocra_suite_length, size_t challen
     ocra_suite_info->use_counter = 0;
     ocra_suite_info->timestamp_div = 0;
     ocra_suite_info->session_length = 0;
-    ocra_suite_info->challenges_length = challenges_length;
     if(ocra_suite_info == NULL)
     {
         printf("ocra_suite_info is null!\n");
@@ -185,11 +184,6 @@ oath_ocra_parse_suite(char *ocra_suite, size_t ocra_suite_length, size_t challen
         }
         if(tmp[2]!='\0'){
             printf("challenge specification not correct (not QFXX)\n");
-            return -1;
-        }
-
-        if(ocra_suite_info->challenges_length > 128) {
-            printf("challenge string too long!\n");
             return -1;
         }
 
@@ -334,15 +328,15 @@ oath_ocra_parse_suite(char *ocra_suite, size_t ocra_suite_length, size_t challen
 
 int
 oath_ocra_generate(const char *secret, size_t secret_length, 
-        char *ocra_suite, size_t ocra_suite_length, 
-        uint64_t counter, char *challenges, 
-        size_t challenges_length, char *pHash, 
-        char *session, time_t now, char *output_ocra) {
+            const char *ocra_suite, size_t ocra_suite_length, 
+            uint64_t counter, const char *challenges, 
+            size_t challenges_length, const char *pHash, 
+            const char *session, time_t now, char *output_ocra) {
 
     ocra_suite_t ocra_suite_info;
 
     int rc = oath_ocra_parse_suite(ocra_suite, ocra_suite_length, 
-                            challenges_length, &ocra_suite_info);
+                                &ocra_suite_info);
 
     if(rc != OATH_OK)
         return rc;
@@ -368,6 +362,11 @@ oath_ocra_generate(const char *secret, size_t secret_length,
 
     if(challenges == NULL) {
         printf("challenges are mandatory, but pointer = NULL!\n");
+        return -1;
+    }
+
+    if(challenges_length > 128) {
+        printf("challenges are not allowed to be longer than 128!\n");
         return -1;
     }
 
@@ -535,10 +534,11 @@ oath_ocra_generate(const char *secret, size_t secret_length,
  **/
 int
 oath_ocra_validate(const char *secret, size_t secret_length, 
-        char *ocra_suite, size_t ocra_suite_length, 
-        uint64_t counter, char *challenges, 
-        size_t challenges_length, char *pHash, 
-        char *session, time_t now, char *validate_ocra) {
+                const char *ocra_suite, size_t ocra_suite_length, 
+                uint64_t counter, const char *challenges, 
+                size_t challenges_length, const char *pHash, 
+                const char *session, time_t now, 
+                const char *validate_ocra) {
 
     int rc;
     char generated_ocra[11]; //max 10 digits

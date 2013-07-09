@@ -320,7 +320,6 @@ typedef struct ocra_suite {
 		enum ocra_hash_t ocra_hash;
 		enum ocra_challenge_t challenge_type;
 		uint8_t challenge_length;
-		size_t challenges_length;
 		uint16_t timestamp_div;
 		uint8_t session_length;
 		uint8_t digits;
@@ -328,36 +327,35 @@ typedef struct ocra_suite {
 } ocra_suite_t;
 
 extern OATHAPI int
-oath_ocra_parse_suite(char *ocra_suite, 
+oath_ocra_parse_suite(const char *ocra_suite, 
             size_t ocra_suite_length,
-            size_t challenges_length,
             ocra_suite_t *ocra_suite_info);
 
 extern OATHAPI int
 oath_ocra_generate(const char *secret, 
 			size_t secret_length, 
-			char *ocra_suite, 
+			const char *ocra_suite, 
 			size_t ocra_suite_length, 
 			uint64_t counter, 
-			char *challenges, 
+			const char *challenges, 
 			size_t challenges_length, 
-			char *pHash, 
-			char *session, 
+			const char *pHash, 
+			const char *session, 
 			time_t now, 
 			char *output_ocra);
 
 extern OATHAPI int
 oath_ocra_validate(const char *secret, 
 			size_t secret_length, 
-			char *ocra_suite, 
+			const char *ocra_suite, 
 			size_t ocra_suite_length, 
 			uint64_t counter, 
-			char *challenges, 
+			const char *challenges, 
 			size_t challenges_length, 
-			char *pHash, 
-			char *session, 
+			const char *pHash, 
+			const char *session, 
 			time_t now, 
-			char *validate_ocra);
+			const char *validate_ocra);
 
 
 /* Usersfile */

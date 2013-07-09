@@ -27,15 +27,14 @@
 
 const struct {
     char *ocra_suite;
-    size_t challenges_length;
     ocra_suite_t exp; //expected result
     int rc;
 } tv[] = {
-    { "OCRA-1:HOTP-SHA1-8:QN08", 64, { 0, NO_HASH, SHA1, NUM, 8, 64, 0, 0, 8, 152}, OATH_OK },
-    { "OCRA-2:HOTP-SHA1-6:QN08", 64, { }, -1 },
-    { "OCRA-1:HOTP-SHA256-6:C-QA10", 128, { 1, NO_HASH, SHA256, ALPHA, 10, 128, 0, 0, 6, 164}, OATH_OK},
-    { "OCRA-1:HOTP-SHA512-2:C-QH24", 1, { 1, NO_HASH, SHA512, HEX, 24, 1, 0, 0, 2, 0}, -1 },
-    { "OCRA-1:HOTP-SHA1-0:C-QA20-PSHA512-S128-T12M", 40, {1, SHA512, SHA1, ALPHA, 20, 40, 720, 128, 0, 380}, OATH_OK}
+    { "OCRA-1:HOTP-SHA1-8:QN08", { 0, NO_HASH, SHA1, NUM, 8, 0, 0, 8, 152}, OATH_OK },
+    { "OCRA-2:HOTP-SHA1-6:QN08", { }, -1 },
+    { "OCRA-1:HOTP-SHA256-6:C-QA10", { 1, NO_HASH, SHA256, ALPHA, 10, 0, 0, 6, 164}, OATH_OK},
+    { "OCRA-1:HOTP-SHA512-2:C-QH24", { 1, NO_HASH, SHA512, HEX, 24, 0, 0, 2, 0}, -1 },
+    { "OCRA-1:HOTP-SHA1-0:C-QA20-PSHA512-S128-T12M", {1, SHA512, SHA1, ALPHA, 20, 720, 128, 0, 380}, OATH_OK}
 };
 
     int
@@ -55,13 +54,7 @@ const struct {
                 ocra_suite_t osi;
                 rc = oath_ocra_parse_suite(tv[i].ocra_suite,
                         strlen(tv[i].ocra_suite),
-                        tv[i].challenges_length,
                         &osi);
-                printf("testcase #%d\n",i);
-                printf("rc: %d\n",rc);
-                printf("use_counter: %d\n",osi.use_counter);
-                printf("datainput_length: %d\n",osi.datainput_length);
-                printf("\n");
 
                 if(rc != tv[i].rc) {
                     printf("rc mismatch for testcase #%d: %d vs %d\n",i,rc,tv[i].rc);
@@ -86,10 +79,6 @@ const struct {
                     }
                     if(osi.challenge_length != tv[i].exp.challenge_length) {
                         printf("challenge_length mismatch for testcase #%d: %d vs %d\n",i,osi.challenge_length,tv[i].exp.challenge_length);
-                        return 1;
-                    }
-                    if(osi.challenges_length != tv[i].exp.challenges_length) {
-                        printf("challenges_length mismatch for testcase #%d: %d vs %d\n",i,osi.challenges_length,tv[i].exp.challenges_length);
                         return 1;
                     }
                     if(osi.timestamp_div != tv[i].exp.timestamp_div) {
