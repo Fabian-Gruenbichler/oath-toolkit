@@ -136,6 +136,8 @@ pam_sm_authenticate (pam_handle_t * pamh,
   int retval, rc;
   const char *user = NULL;
   const char *password = NULL;
+  char *challenges = NULL;
+  size_t challenges_length = 0;
   char otp[MAX_OTP_LEN + 1];
   int password_len = 0;
   struct pam_conv *conv;
@@ -194,23 +196,99 @@ pam_sm_authenticate (pam_handle_t * pamh,
 
       pmsg[0] = &msg[0];
       {
-	const char *query_template = "One-time password (OATH) for `%s': ";
-	size_t len = strlen (query_template) + strlen (user);
-	size_t wrote;
+    oath_alg algorithm = NONE;
+    char ocra_suite[44];
+    ocra_suite_t ocra_suite_info;
+    rc = oath_retrieve_mode(cfg.usersfile,user,&algorithm,ocra_suite);
 
-	query_prompt = malloc (len);
-	if (!query_prompt)
-	  {
-	    retval = PAM_BUF_ERR;
-	    goto done;
-	  }
+    if (rc != OATH_OK)
+      {
+        DBG (("One-time password not authorized to login as user '%s'", user));
+        retval = PAM_AUTH_ERR;
+        goto done;
+      }
 
-	wrote = snprintf (query_prompt, len, query_template, user);
-	if (wrote < 0 || wrote >= len)
-	  {
-	    retval = PAM_BUF_ERR;
-	    goto done;
-	  }
+    if(algorithm == OCRA)
+      {
+        rc = oath_ocra_parse_suite(ocra_suite,strlen(ocra_suite),&ocra_suite_info);
+        if (rc != OATH_OK)
+          {
+            DBG (("Malformed OCRA suite for user '%s'", user));
+            retval = PAM_AUTH_ERR;
+            goto done;
+          }
+        char challenge_string[ocra_suite_info.challenge_length+1];
+        oath_ocra_generate_challenge(ocra_suite_info.challenge_type,
+                                ocra_suite_info.challenge_length,
+                                challenge_string);
+
+        switch(ocra_suite_info.challenge_type) {
+            case NUM:
+                {
+                    unsigned long int num_value = strtoul(challenge_string,NULL,10);
+                    char temp[ocra_suite_info.challenge_type];
+                    sprintf(temp,"%lX",num_value);
+                    oath_hex2bin(temp,NULL,&challenges_length);
+                    challenges = malloc(challenges_length);
+                    oath_hex2bin(temp,challenges,&challenges_length);
+                }
+                break;
+
+            case HEX:
+                {
+                    oath_hex2bin(challenge_string,NULL,&challenges_length);
+                    challenges = malloc(challenges_length);
+                    oath_hex2bin(challenge_string,challenges,&challenges_length);
+
+                }
+                break;
+
+            case ALPHA:
+                {
+                    challenges_length = strlen(challenge_string);
+                    strncpy(challenges,challenge_string,challenges_length);
+                }
+                break;
+        }
+
+	    const char *query_template = "One-time password (OCRA) for `%s' - challenge is \"%s\": ";
+        size_t len = strlen (query_template) + strlen (user) + strlen (challenge_string);
+	    size_t wrote;
+
+	    query_prompt = malloc (len);
+	    if (!query_prompt)
+	      {
+	        retval = PAM_BUF_ERR;
+	        goto done;
+	      }
+
+	    wrote = snprintf (query_prompt, len, query_template, user, challenge_string);
+	    if (wrote < 0 || wrote >= len)
+	      {
+	        retval = PAM_BUF_ERR;
+	        goto done;
+	      }
+      }
+    else
+      {
+	    const char *query_template = "One-time password (OATH) for `%s': ";
+        size_t len = strlen (query_template) + strlen (user);
+	    size_t wrote;
+
+	    query_prompt = malloc (len);
+	    if (!query_prompt)
+	      {
+	        retval = PAM_BUF_ERR;
+	        goto done;
+	      }
+    
+    	wrote = snprintf (query_prompt, len, query_template, user);
+    	if (wrote < 0 || wrote >= len)
+    	  {
+    	    retval = PAM_BUF_ERR;
+    	    goto done;
+    	  }
+      }
 
 	msg[0].msg = query_prompt;
       }
@@ -293,9 +371,11 @@ pam_sm_authenticate (pam_handle_t * pamh,
   {
     time_t last_otp;
 
-    rc = oath_authenticate_usersfile (cfg.usersfile,
+    rc = oath_authenticate_usersfile2 (cfg.usersfile,
 				      user,
-				      otp, cfg.window, onlypasswd, &last_otp);
+				      otp, cfg.window, onlypasswd, 
+				      challenges, challenges_length,
+				      &last_otp);
     DBG (("authenticate rc %d (%s: %s) last otp %s", rc,
 	  oath_strerror_name (rc) ? oath_strerror_name (rc) : "UNKNOWN",
 	  oath_strerror (rc), ctime (&last_otp)));
@@ -314,6 +394,7 @@ done:
   oath_done ();
   free (query_prompt);
   free (onlypasswd);
+  free (challenges);
   if (cfg.alwaysok && retval != PAM_SUCCESS)
     {
       DBG (("alwaysok needed (otherwise return with %d)", retval));
