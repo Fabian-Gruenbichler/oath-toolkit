@@ -21,7 +21,8 @@ MAINTAINERCLEANFILES = $(dist_man_MANS)
 GDOC_BIN = $(srcdir)/gdoc
 GDOC_SRC = $(top_srcdir)/global.c $(top_srcdir)/coding.c	\
 	$(top_srcdir)/usersfile.c $(top_srcdir)/hotp.c		\
-	$(top_srcdir)/totp.c $(top_srcdir)/errors.c
+	$(top_srcdir)/totp.c $(top_srcdir)/errors.c \
+	$(top_srcdir)/ocra.c
 
 GDOC_MAN_EXTRA_ARGS = -module $(PACKAGE) -sourceversion $(VERSION) \
         -bugsto $(PACKAGE_BUGREPORT) -pkg-name "$(PACKAGE_NAME)" \
