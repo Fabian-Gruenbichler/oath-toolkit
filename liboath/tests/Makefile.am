@@ -32,7 +32,8 @@ ctests = \
 	tst_totp_validate \
 	tst_ocra_algo \
 	tst_ocra_validate \
-	tst_ocra_parse
+	tst_ocra_parse \
+	tst_ocra_challenge
 
 check_PROGRAMS = $(ctests) tst_usersfile
 dist_check_SCRIPTS = tst_usersfile.sh

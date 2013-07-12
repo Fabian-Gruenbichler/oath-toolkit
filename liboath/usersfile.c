@@ -31,15 +31,8 @@
 #include <errno.h>		/* For errno. */
 #include <sys/stat.h>		/* For S_IRUSR, S_IWUSR. */
 
-typedef enum oath_alg_t
-{
-    HOTP,
-    TOTP,
-    OCRA
-} oath_alg;
-
 static int
-parse_type (const char *str, oath_alg *alg, unsigned *digits, unsigned *totpstepsize, ocra_suite_t *ocra_suite_info)
+parse_type (const char *str, oath_alg *alg, unsigned *digits, unsigned *totpstepsize, char *ocra_suite)
 {
   *totpstepsize = 0;
   *alg = HOTP;
@@ -78,10 +71,11 @@ parse_type (const char *str, oath_alg *alg, unsigned *digits, unsigned *totpstep
     }
   else if (strncmp (str, "OCRA",4) == 0)
     {
-      int rc = oath_ocra_parse_suite(str,strlen(str),ocra_suite_info);
-      if(rc != OATH_OK)
-        return -1;
+      printf("OCRA string: '%s', length %d\n",str,strlen(str));
       *alg=OCRA;
+      if(strlen(str)>43)
+          return -1;
+      strncpy(ocra_suite,str,strlen(str)+1);
     }
   else
     return -1;
@@ -92,6 +86,46 @@ parse_type (const char *str, oath_alg *alg, unsigned *digits, unsigned *totpstep
 static const char *whitespace = " \t\r\n";
 #define TIME_FORMAT_STRING "%Y-%m-%dT%H:%M:%SL"
 
+int
+oath_retrieve_mode (const char *usersfile,
+        const char *username,
+        oath_alg *algorithm,
+        char *ocra_suite)
+{
+  FILE *infh;
+  char *line = NULL;
+  size_t n = 0;
+  int rc;
+
+
+  infh = fopen (usersfile, "r");
+  if (!infh)
+    return OATH_NO_SUCH_FILE;
+  
+  while (getline (&line, &n, infh) != -1)
+  {
+      char *saveptr;
+      char *p = strtok_r (line, whitespace, &saveptr);
+      unsigned digits, totpstepsize;
+      int rc = 0;
+
+      if (p == NULL)
+	continue;
+
+      /* Read token type */
+      if (parse_type (p, algorithm, &digits, &totpstepsize, ocra_suite) != 0)
+	continue;
+
+      /* Read username */
+      p = strtok_r (NULL, whitespace, &saveptr);
+      if (p == NULL || strcmp (p, username) != 0)
+	continue;
+
+      return OATH_OK;
+  }
+  return OATH_UNKNOWN_USER;
+}
+
 static int
 parse_usersfile (const char *username,
 		 const char *otp,
@@ -100,7 +134,8 @@ parse_usersfile (const char *username,
 		 time_t * last_otp,
 		 FILE * infh,
 		 char **lineptr, size_t * n, uint64_t * new_moving_factor,
-		 size_t * skipped_users)
+		 size_t * skipped_users,
+		 const char *challenges, size_t challenges_length)
 {
   int bad_password = 0;
 
@@ -118,12 +153,13 @@ parse_usersfile (const char *username,
       int rc = 0;
       char *prev_otp = NULL;
       ocra_suite_t ocra_suite_info;
+      char ocra_suite[44];
 
       if (p == NULL)
 	continue;
 
       /* Read token type */
-      if (parse_type (p, &alg, &digits, &totpstepsize,&ocra_suite_info) != 0)
+      if (parse_type (p, &alg, &digits, &totpstepsize, ocra_suite) != 0)
 	continue;
 
       /* Read username */
@@ -236,7 +272,19 @@ parse_usersfile (const char *username,
 	    rc = oath_totp_validate (secret, secret_length,
 	                             time (NULL), totpstepsize, 0, window, otp);
           break;
-          
+        
+        case OCRA:
+          rc = oath_ocra_parse_suite(ocra_suite,strlen(ocra_suite),&ocra_suite_info);
+          /* TODO: if phash != NONE, generate password hash from passwd */
+          /* TODO: if session info, what is session info for pam use case? */
+          rc = oath_ocra_validate(secret, secret_length, 
+                                  ocra_suite, strlen(ocra_suite),
+                                  start_moving_factor,
+                                  challenges, challenges_length,
+                                  NULL,NULL,time(NULL),
+                                  otp);
+          if(rc==OATH_OK)
+              rc = 1;
         default:
           break;
       }
@@ -468,6 +516,55 @@ oath_authenticate_usersfile (const char *usersfile,
 			     size_t window,
 			     const char *passwd, time_t * last_otp)
 {
+    return oath_authenticate_usersfile2 (usersfile,
+                                         username,
+                                         otp,
+                                         window,
+                                         passwd,
+                                         NULL,
+                                         0,
+                                         last_otp);
+}
+
+
+/**
+ * oath_authenticate_usersfile2:
+ * @usersfile: string with user credential filename, in UsersFile format
+ * @username: string with name of user
+ * @otp: string with one-time password to authenticate
+ * @window: how many past/future OTPs to search
+ * @passwd: string with password, or NULL to disable password checking
+ * @challenges: byte-array storing challenges value (max 128byte)
+ * @challenges_length: length of @challenges
+ * @last_otp: output variable holding last successful authentication
+ *
+ * Authenticate user named @username with the one-time password @otp
+ * and (optional) password @passwd.  Credentials are read (and
+ * updated) from a text file named @usersfile.
+ *
+ * Note that for TOTP the usersfile will only record the last OTP and
+ * use that to make sure more recent OTPs have not been seen yet when
+ * validating a new OTP.  That logics relies on using the same search
+ * window for the same user.
+ *
+ * Returns: On successful validation, %OATH_OK is returned.  If the
+ *   supplied @otp is the same as the last successfully authenticated
+ *   one-time password, %OATH_REPLAYED_OTP is returned and the
+ *   timestamp of the last authentication is returned in @last_otp.
+ *   If the one-time password is not found in the indicated search
+ *   window, %OATH_INVALID_OTP is returned.  Otherwise, an error code
+ *   is returned.
+ **/
+int
+oath_authenticate_usersfile2 (const char *usersfile,
+			     const char *username,
+			     const char *otp,
+			     size_t window,
+			     const char *passwd, 
+			     const char *challenges,
+ 			     size_t challenges_length,
+                 time_t * last_otp)
+{
   FILE *infh;
   char *line = NULL;
   size_t n = 0;
@@ -480,7 +577,8 @@ oath_authenticate_usersfile (const char *usersfile,
     return OATH_NO_SUCH_FILE;
 
   rc = parse_usersfile (username, otp, window, passwd, last_otp,
-			infh, &line, &n, &new_moving_factor, &skipped_users);
+			infh, &line, &n, &new_moving_factor, &skipped_users, 
+            challenges, challenges_length);
 
   if (rc == OATH_OK)
     {

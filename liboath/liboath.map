@@ -83,4 +83,7 @@ LIBOATH_2.4.0
     oath_ocra_parse_suite;
     oath_ocra_generate;
     oath_ocra_validate;
+    oath_ocra_generate_challenge;
+    oath_retrieve_mode;
+    oath_authenticate_usersfile2;
 } LIBOATH_2.2.0;

@@ -41,7 +41,7 @@ int strtouint(char *string, uint8_t *uint) {
 }
 
 /**
- * ocra_parse_suite:
+ * oath_ocra_parse_suite:
  * @ocra_suite: string to be parsed
  * @ocra_suite_length: length of string to be parsed
  * @ocra_suite_info: struct where parsed information is stored
@@ -176,10 +176,11 @@ oath_ocra_parse_suite(const char *ocra_suite, size_t ocra_suite_length,
         tmp++;
         if(strtouint(tmp,&(ocra_suite_info->challenge_length))!=0) {
             printf("couldn't convert challenge length!\n");
+            printf("string: %s\n",tmp);
             return -1;
         }
         if(ocra_suite_info->challenge_length<4 || ocra_suite_info->challenge_length > 64) {
-            printf("challenge length not between 4 and 64\n");
+            printf("challenge length not between 4 and 64 (%d)\n",ocra_suite_info->challenge_length);
             return -1;
         }
         if(tmp[2]!='\0'){
@@ -294,7 +295,7 @@ oath_ocra_parse_suite(const char *ocra_suite, size_t ocra_suite_length,
 }
 
 /**
- * ocra_generate:
+ * oath_ocra_generate:
  * @secret: the shared secret string
  * @secret_length: length of @secret
  * @ocra_suite: string with information about used hash algorithms and input
@@ -328,15 +329,15 @@ oath_ocra_parse_suite(const char *ocra_suite, size_t ocra_suite_length,
 
 int
 oath_ocra_generate(const char *secret, size_t secret_length, 
-            const char *ocra_suite, size_t ocra_suite_length, 
-            uint64_t counter, const char *challenges, 
-            size_t challenges_length, const char *pHash, 
-            const char *session, time_t now, char *output_ocra) {
+        const char *ocra_suite, size_t ocra_suite_length, 
+        uint64_t counter, const char *challenges, 
+        size_t challenges_length, const char *pHash, 
+        const char *session, time_t now, char *output_ocra) {
 
     ocra_suite_t ocra_suite_info;
 
     int rc = oath_ocra_parse_suite(ocra_suite, ocra_suite_length, 
-                                &ocra_suite_info);
+                            &ocra_suite_info);
 
     if(rc != OATH_OK)
         return rc;
@@ -421,11 +422,14 @@ oath_ocra_generate(const char *secret, size_t secret_length,
         curr_ptr+=8;
     }
 
+    /*
     char hexstring[ocra_suite_info.datainput_length*2+1];
     oath_bin2hex(byte_array,ocra_suite_info.datainput_length,hexstring);
 
-    //printf("BYTE_ARRAY: %d\n",ocra_suite_info->datainput_length);
-    //printf(hexstring);
+    printf("BYTE_ARRAY: %d\n",ocra_suite_info.datainput_length);
+    printf(hexstring);
+    printf("\n"); 
+    */
 
     char *hs;
     size_t hs_size;
@@ -513,7 +517,7 @@ oath_ocra_generate(const char *secret, size_t secret_length,
 }
 
 /**
- * ocra_validate:
+ * oath_ocra_validate:
  * @secret: the shared secret string
  * @secret_length: length of @secret
  * @ocra_suite: string with information about used hash algorithms and input
@@ -534,11 +538,11 @@ oath_ocra_generate(const char *secret, size_t secret_length,
  **/
 int
 oath_ocra_validate(const char *secret, size_t secret_length, 
-                const char *ocra_suite, size_t ocra_suite_length, 
-                uint64_t counter, const char *challenges, 
-                size_t challenges_length, const char *pHash, 
-                const char *session, time_t now, 
-                const char *validate_ocra) {
+        const char *ocra_suite, size_t ocra_suite_length, 
+        uint64_t counter, const char *challenges, 
+        size_t challenges_length, const char *pHash, 
+        const char *session, time_t now, 
+        const char *validate_ocra) {
 
     int rc;
     char generated_ocra[11]; //max 10 digits
@@ -556,4 +560,76 @@ oath_ocra_validate(const char *secret, size_t secret_length,
         return OATH_STRCMP_ERROR;
 
     return OATH_OK;
+}
+
+
+/**
+ * oath_ocra_generate_challenge:
+ * @challenge_type: NUM, HEX or ALPHA; chars allowed in challenge
+ * @challenge_length: number of chars in challenge
+ * @challenge: output buffer, needs space for @challenge_length+1 chars
+ *
+ * Generates a (pseudo)random challenge string depending on the type and length
+ * given by @challenge_type and @challenge_length.
+ *
+ * Since: 2.4.0
+ **/
+void 
+oath_ocra_generate_challenge(enum ocra_challenge_t challenge_type, size_t challenge_length, char *challenge) {
+    long int random_number;
+    long int max;
+
+    srandom(time(NULL));
+    switch(challenge_type) {
+        case NUM :
+            {
+                char *tmp = challenge;
+                int i;
+
+                for(i=0; i < challenge_length; i++) {
+                    random_number = random() % 10;
+                    if(random_number < 10)
+                        *tmp = '0' + random_number;
+                    tmp++;
+                }
+                *tmp='\0';
+            }
+            break;
+
+        case HEX :
+            {
+                char *tmp = challenge;
+                int i;
+
+                for(i=0; i < challenge_length; i++) {
+                    random_number = random() % 16;
+                    if(random_number < 10)
+                        *tmp = '0' + random_number;
+                    else if(random_number < 16)
+                        *tmp = 'A' + (random_number-10);
+                    tmp++;
+                }
+                *tmp='\0';
+            }
+            break;
+
+        case ALPHA :
+            {
+                char *tmp = challenge;
+                int i;
+
+                for(i=0; i < challenge_length; i++) {
+                    random_number = random() % 62;
+                    if(random_number < 10)
+                        *tmp = '0' + random_number;
+                    else if(random_number < 36)
+                        *tmp = 'A' + (random_number-10);
+                    else *tmp = 'a' + (random_number-36);
+                    tmp++;
+                }
+                *tmp='\0';
+            }
+            break;
+    }
+
 }

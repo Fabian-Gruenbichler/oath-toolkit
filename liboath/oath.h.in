@@ -209,6 +209,14 @@ oath_hotp_validate (const char *secret,
 typedef int (*oath_validate_strcmp_function) (void *handle,
 					      const char *test_otp);
 
+typedef enum oath_alg_t
+{
+    NONE,
+    HOTP,
+    TOTP,
+    OCRA
+} oath_alg;
+
 /* For backwards compatibility with 1.4.x. */
 #define oath_hotp_validate_strcmp_function oath_validate_strcmp_function
 
@@ -357,6 +365,11 @@ oath_ocra_validate(const char *secret,
 			time_t now, 
 			const char *validate_ocra);
 
+extern OATHAPI void
+oath_ocra_generate_challenge(enum ocra_challenge_t challenge_type, 
+                             size_t challenge_length, 
+                             char *challenge);
+
 
 /* Usersfile */
 
@@ -367,6 +380,24 @@ oath_authenticate_usersfile (const char *usersfile,
 			     size_t window,
 			     const char *passwd,
 			     time_t * last_otp);
+
+extern OATHAPI int
+oath_authenticate_usersfile2 (const char *usersfile,
+			     const char *username,
+			     const char *otp,
+			     size_t window,
+			     const char *passwd,
+			     const char *challenges,
+			     size_t challenges_length,
+			     time_t * last_otp);
+
+extern OATHAPI int
+oath_retrieve_mode (const char *usersfile,
+             const char *username,
+             oath_alg *algorithm,
+             char *ocra_suite);
+
+
 
 # ifdef __cplusplus
 }
