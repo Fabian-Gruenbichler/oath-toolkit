@@ -115,13 +115,6 @@ static void verbose_totp (time_t t0, time_t time_step_size, time_t when)
 
 #define EXIT_OTP_INVALID 2
 
-enum mode_t {
-    HOTP,
-    TOTP,
-    OCRA
-};
-
-
     int
 main (int argc, char *argv[])
 {
@@ -134,7 +127,7 @@ main (int argc, char *argv[])
     unsigned digits;
     char otp[11];
     time_t now, when, t0, time_step_size;
-    mode_t mode = HOTP;
+    oath_alg mode = HOTP;
     
     size_t bin_length;
     char *challenges_bin;
@@ -385,12 +378,8 @@ main (int argc, char *argv[])
             if(rc != OATH_OK)
                 error (EXIT_FAILURE,0,
                         "could not convert challenges string to byte-array");
-            if(args_info.now_given) {
-                now = time (NULL);
-                when = parse_time (args_info.now_arg, now);
-            } else {
-                when = 0;
-            }
+            now = time (NULL);
+            when = parse_time (args_info.now_arg, now);
             if (generate_otp_p (args_info.inputs_num))
             {
                 rc = oath_ocra_generate(secret, 
