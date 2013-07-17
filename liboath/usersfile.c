@@ -35,7 +35,7 @@ static int
 parse_type (const char *str, oath_alg *alg, unsigned *digits, unsigned *totpstepsize, char *ocra_suite)
 {
   *totpstepsize = 0;
-  *alg = HOTP;
+  *alg = OATH_HOTP;
   if (strcmp (str, "HOTP/E/6") == 0
       || strcmp (str, "HOTP/E") == 0 || strcmp (str, "HOTP") == 0)
     *digits = 6;
@@ -46,7 +46,7 @@ parse_type (const char *str, oath_alg *alg, unsigned *digits, unsigned *totpstep
   else if (strncmp (str, "HOTP/T30", 8) == 0)
     {
       *totpstepsize = 30;
-      *alg = TOTP;
+      *alg = OATH_TOTP;
       if (strcmp (str, "HOTP/T30") == 0 || strcmp (str, "HOTP/T30/6") == 0)
 	*digits = 6;
       else if (strcmp (str, "HOTP/T30/7") == 0)
@@ -59,7 +59,7 @@ parse_type (const char *str, oath_alg *alg, unsigned *digits, unsigned *totpstep
   else if (strncmp (str, "HOTP/T60", 8) == 0)
     {
       *totpstepsize = 60;
-      *alg = TOTP;
+      *alg = OATH_TOTP;
       if (strcmp (str, "HOTP/T60") == 0 || strcmp (str, "HOTP/T60/6") == 0)
 	*digits = 6;
       else if (strcmp (str, "HOTP/T60/7") == 0)
@@ -72,7 +72,7 @@ parse_type (const char *str, oath_alg *alg, unsigned *digits, unsigned *totpstep
   else if (strncmp (str, "OCRA",4) == 0)
     {
       printf("OCRA string: '%s', length %d\n",str,strlen(str));
-      *alg=OCRA;
+      *alg=OATH_OCRA;
       if(strlen(str)>43)
           return -1;
       strncpy(ocra_suite,str,strlen(str)+1);
@@ -243,12 +243,12 @@ parse_usersfile (const char *username,
 	return OATH_REPLAYED_OTP;
 
       switch(alg) {
-        case HOTP:
+        case OATH_HOTP:
 	  rc = oath_hotp_validate (secret, secret_length,
 				   start_moving_factor, window, otp);
           break;
 
-        case TOTP:
+        case OATH_TOTP:
           if (prev_otp)
 	    {
 	      int prev_otp_pos, this_otp_pos, tmprc;
@@ -273,7 +273,7 @@ parse_usersfile (const char *username,
 	                             time (NULL), totpstepsize, 0, window, otp);
           break;
         
-        case OCRA:
+        case OATH_OCRA:
           rc = oath_ocra_parse_suite(ocra_suite,strlen(ocra_suite),&ocra_suite_info);
           /* TODO: if phash != NONE, generate password hash from passwd */
           /* TODO: if session info, what is session info for pam use case? */

@@ -127,7 +127,7 @@ main (int argc, char *argv[])
     unsigned digits;
     char otp[11];
     time_t now, when, t0, time_step_size;
-    oath_alg mode = HOTP;
+    oath_alg mode = OATH_HOTP;
     
     size_t bin_length;
     char *challenges_bin;
@@ -210,9 +210,9 @@ main (int argc, char *argv[])
         error (EXIT_FAILURE, 0,
                 "more than one mode set! use either --hotp, --totp or --ocra");
     if(args_info.totp_flag)
-        mode = TOTP;
+        mode = OATH_TOTP;
     if(args_info.ocra_flag)
-        mode = OCRA;
+        mode = OATH_OCRA;
 
     if (validate_otp_p (args_info.inputs_num) && !args_info.digits_orig)
         digits = strlen (args_info.inputs[1]);
@@ -253,7 +253,7 @@ main (int argc, char *argv[])
     }
 
     switch(mode) {
-        case TOTP:
+        case OATH_TOTP:
             if (digits != 6 && digits != 7 && digits != 8)
                 error (EXIT_FAILURE, 0, "only digits 6, 7 and 8 are supported");
 
@@ -314,7 +314,7 @@ main (int argc, char *argv[])
             }
             break;
 
-        case HOTP:
+        case OATH_HOTP:
             if (digits != 6 && digits != 7 && digits != 8)
                 error (EXIT_FAILURE, 0, "only digits 6, 7 and 8 are supported");
             if (args_info.verbose_flag)
@@ -355,7 +355,7 @@ main (int argc, char *argv[])
             }
             break;
 
-        case OCRA:
+        case OATH_OCRA:
             bin_length=0;
             if(!args_info.challenges_given)
                 error (EXIT_FAILURE,0,

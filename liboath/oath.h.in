@@ -211,10 +211,10 @@ typedef int (*oath_validate_strcmp_function) (void *handle,
 
 typedef enum oath_alg_t
 {
-    NONE,
-    HOTP,
-    TOTP,
-    OCRA
+    OATH_NONE,
+    OATH_HOTP,
+    OATH_TOTP,
+    OATH_OCRA
 } oath_alg;
 
 /* For backwards compatibility with 1.4.x. */

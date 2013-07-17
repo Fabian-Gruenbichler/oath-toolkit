@@ -196,7 +196,7 @@ pam_sm_authenticate (pam_handle_t * pamh,
 
       pmsg[0] = &msg[0];
       {
-    oath_alg algorithm = NONE;
+    oath_alg algorithm = OATH_NONE;
     char ocra_suite[44];
     ocra_suite_t ocra_suite_info;
     rc = oath_retrieve_mode(cfg.usersfile,user,&algorithm,ocra_suite);
@@ -208,7 +208,7 @@ pam_sm_authenticate (pam_handle_t * pamh,
         goto done;
       }
 
-    if(algorithm == OCRA)
+    if(algorithm == OATH_OCRA)
       {
         rc = oath_ocra_parse_suite(ocra_suite,strlen(ocra_suite),&ocra_suite_info);
         if (rc != OATH_OK)
