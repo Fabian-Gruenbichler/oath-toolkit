@@ -127,7 +127,7 @@ main (int argc, char *argv[])
     unsigned digits;
     char otp[11];
     time_t now, when, t0, time_step_size;
-    oath_alg mode = OATH_HOTP;
+    oath_alg_t mode = OATH_HOTP;
     
     size_t bin_length;
     char *challenges_bin;

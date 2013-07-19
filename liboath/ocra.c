@@ -430,6 +430,7 @@ oath_ocra_generate(const char *secret, size_t secret_length,
     printf(hexstring);
     printf("\n"); 
     */
+    
 
     char *hs;
     size_t hs_size;
@@ -575,7 +576,7 @@ oath_ocra_validate(const char *secret, size_t secret_length,
  * Since: 2.4.0
  **/
 void 
-oath_ocra_generate_challenge(enum ocra_challenge_t challenge_type, size_t challenge_length, char *challenge) {
+oath_ocra_generate_challenge(ocra_challenge_t challenge_type, size_t challenge_length, char *challenge) {
     long int random_number;
     long int max;
 
@@ -631,5 +632,67 @@ oath_ocra_generate_challenge(enum ocra_challenge_t challenge_type, size_t challe
             }
             break;
     }
+}
 
+/**
+ * oath_ocra_convert_challenge:
+ * @challenge_type: NUM, HEX or ALPHA; chars allowed in challenge
+ * @challenge_string: challenge string
+ * @challenge_binary_length: length of returned byte-array
+ *
+ * Converts @challenge_string to binary representation. Numerical values are
+ * converted to base16 and then converted using @oath_hex2bin. Hexadecimal
+ * values are simply converted using @oath_hex2bin, alpha numerical values are
+ * just copied.
+ *
+ * Returns: malloc'ed byte-array of length @challenge_binary_length
+ *
+ * Since: 2.4.0
+ **/
+char *oath_ocra_convert_challenge(ocra_challenge_t challenge_type, char *challenge_string, size_t *challenge_binary_length)
+{
+    char *challenges;
+    size_t challenge_length = strlen(challenge_string);
+    switch(challenge_type) {
+        case NUM:
+            {
+                unsigned long int num_value = strtoul(challenge_string,NULL,10);
+                char temp[challenge_length+2];
+                sprintf(temp,"%lX",num_value);
+                size_t hex_length = strlen(temp);
+                if(hex_length%2==1)
+                {
+                    temp[hex_length]='0';
+                    temp[hex_length+1]='\0';
+                }
+                oath_hex2bin(temp,NULL,challenge_binary_length);
+                challenges = malloc(*challenge_binary_length);
+                oath_hex2bin(temp,challenges,challenge_binary_length);
+            }
+            break;
+
+        case HEX:
+            {
+                char temp[challenge_length+2];
+                strncpy(temp,challenge_string,challenge_length+1);
+                if(challenge_length%2==1)
+                {
+                    temp[challenge_length]='0';
+                    temp[challenge_length+1]='\0';
+                }
+                oath_hex2bin(temp,NULL,challenge_binary_length);
+                challenges = malloc(*challenge_binary_length);
+                oath_hex2bin(temp,challenges,challenge_binary_length);
+            }
+            break;
+
+        case ALPHA:
+            {
+                *challenge_binary_length = challenge_length;
+                challenges = malloc(*challenge_binary_length);
+                strncpy(challenges,challenge_string,*challenge_binary_length);
+            }
+            break;
+    }
+    return challenges;
 }

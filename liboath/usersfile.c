@@ -32,7 +32,7 @@
 #include <sys/stat.h>		/* For S_IRUSR, S_IWUSR. */
 
 static int
-parse_type (const char *str, oath_alg *alg, unsigned *digits, unsigned *totpstepsize, char *ocra_suite)
+parse_type (const char *str, oath_alg_t *alg, unsigned *digits, unsigned *totpstepsize, char *ocra_suite)
 {
   *totpstepsize = 0;
   *alg = OATH_HOTP;
@@ -89,7 +89,7 @@ static const char *whitespace = " \t\r\n";
 int
 oath_retrieve_mode (const char *usersfile,
         const char *username,
-        oath_alg *algorithm,
+        oath_alg_t *algorithm,
         char *ocra_suite)
 {
   FILE *infh;
@@ -145,7 +145,7 @@ parse_usersfile (const char *username,
     {
       char *saveptr;
       char *p = strtok_r (*lineptr, whitespace, &saveptr);
-      oath_alg alg;
+      oath_alg_t alg;
       unsigned digits, totpstepsize;
       char secret[32];
       size_t secret_length = sizeof (secret);

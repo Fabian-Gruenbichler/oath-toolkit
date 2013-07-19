@@ -196,7 +196,7 @@ pam_sm_authenticate (pam_handle_t * pamh,
 
       pmsg[0] = &msg[0];
       {
-    oath_alg algorithm = OATH_NONE;
+    oath_alg_t algorithm = OATH_NONE;
     char ocra_suite[44];
     ocra_suite_t ocra_suite_info;
     rc = oath_retrieve_mode(cfg.usersfile,user,&algorithm,ocra_suite);
@@ -222,34 +222,11 @@ pam_sm_authenticate (pam_handle_t * pamh,
                                 ocra_suite_info.challenge_length,
                                 challenge_string);
 
-        switch(ocra_suite_info.challenge_type) {
-            case NUM:
-                {
-                    unsigned long int num_value = strtoul(challenge_string,NULL,10);
-                    char temp[ocra_suite_info.challenge_type];
-                    sprintf(temp,"%lX",num_value);
-                    oath_hex2bin(temp,NULL,&challenges_length);
-                    challenges = malloc(challenges_length);
-                    oath_hex2bin(temp,challenges,&challenges_length);
-                }
-                break;
+        size_t challenges_length=0;
+        challenges = oath_ocra_convert_challenge(ocra_suite_info.challenge_type,
+                                        challenge_string,
+                                        &challenges_length);
 
-            case HEX:
-                {
-                    oath_hex2bin(challenge_string,NULL,&challenges_length);
-                    challenges = malloc(challenges_length);
-                    oath_hex2bin(challenge_string,challenges,&challenges_length);
-
-                }
-                break;
-
-            case ALPHA:
-                {
-                    challenges_length = strlen(challenge_string);
-                    strncpy(challenges,challenge_string,challenges_length);
-                }
-                break;
-        }
 
 	    const char *query_template = "One-time password (OCRA) for `%s' - challenge is \"%s\": ";
         size_t len = strlen (query_template) + strlen (user) + strlen (challenge_string);

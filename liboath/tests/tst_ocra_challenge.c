@@ -8,7 +8,7 @@
 
 
 const struct {
-    enum ocra_challenge_t type;
+    ocra_challenge_t type;
     size_t length;
 } tv[] = {
     { HEX, 8},
