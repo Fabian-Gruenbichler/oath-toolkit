@@ -134,14 +134,6 @@ typedef enum
   OATH_LAST_ERROR = -25
 } oath_rc;
 
-typedef enum 
-{
-    HEX = 0,
-    ALPHA = 1,
-    NUM = 2
-} ocra_challenge_t;
-
-
 /* Global */
 
 extern OATHAPI int oath_init (void);
@@ -219,10 +211,10 @@ typedef int (*oath_validate_strcmp_function) (void *handle,
 
 typedef enum 
 {
-    OATH_NONE,
-    OATH_HOTP,
-    OATH_TOTP,
-    OATH_OCRA
+    OATH_ALGO_NONE,
+    OATH_ALGO_HOTP,
+    OATH_ALGO_TOTP,
+    OATH_ALGO_OCRA
 } oath_alg_t;
 
 /* For backwards compatibility with 1.4.x. */
@@ -317,18 +309,27 @@ oath_totp_validate3_callback (const char *secret,
 
 /* OCRA */
 
-enum ocra_hash_t {
-    NO_HASH,
-    SHA1,
-    SHA256,
-    SHA512
-};
+typedef enum {
+    OATH_OCRA_HASH_NONE,
+    OATH_OCRA_HASH_SHA1,
+    OATH_OCRA_HASH_SHA256,
+    OATH_OCRA_HASH_SHA512
+} oath_ocra_hash_t;
+
+typedef enum 
+{
+    OATH_OCRA_CHALLENGE_HEX = 0,
+    OATH_OCRA_CHALLENGE_ALPHA = 1,
+    OATH_OCRA_CHALLENGE_NUM = 2
+} oath_ocra_challenge_t;
+
+
 
 typedef struct ocra_suite {
 		uint8_t use_counter;
-		enum ocra_hash_t password_hash;
-		enum ocra_hash_t ocra_hash;
-		ocra_challenge_t challenge_type;
+		oath_ocra_hash_t password_hash;
+		oath_ocra_hash_t ocra_hash;
+		oath_ocra_challenge_t challenge_type;
 		uint8_t challenge_length;
 		uint16_t timestamp_div;
 		uint8_t session_length;
@@ -368,11 +369,11 @@ oath_ocra_validate(const char *secret,
 			const char *validate_ocra);
 
 extern OATHAPI void
-oath_ocra_generate_challenge(ocra_challenge_t challenge_type, 
+oath_ocra_generate_challenge(oath_ocra_challenge_t challenge_type, 
                              size_t challenge_length, 
                              char *challenge);
 extern OATHAPI char*
-oath_ocra_convert_challenge(ocra_challenge_t challenge_type, 
+oath_ocra_convert_challenge(oath_ocra_challenge_t challenge_type, 
                             char *challenge_string, 
                             size_t *challenge_binary_length);
 

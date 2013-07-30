@@ -36,7 +36,7 @@ parse_type (const char *str, oath_alg_t * alg, unsigned *digits,
 	    unsigned *totpstepsize, char *ocra_suite)
 {
   *totpstepsize = 0;
-  *alg = OATH_HOTP;
+  *alg = OATH_ALGO_HOTP;
   if (strcmp (str, "HOTP/E/6") == 0
       || strcmp (str, "HOTP/E") == 0 || strcmp (str, "HOTP") == 0)
     *digits = 6;
@@ -47,7 +47,7 @@ parse_type (const char *str, oath_alg_t * alg, unsigned *digits,
   else if (strncmp (str, "HOTP/T30", 8) == 0)
     {
       *totpstepsize = 30;
-      *alg = OATH_TOTP;
+      *alg = OATH_ALGO_TOTP;
       if (strcmp (str, "HOTP/T30") == 0 || strcmp (str, "HOTP/T30/6") == 0)
 	*digits = 6;
       else if (strcmp (str, "HOTP/T30/7") == 0)
@@ -60,7 +60,7 @@ parse_type (const char *str, oath_alg_t * alg, unsigned *digits,
   else if (strncmp (str, "HOTP/T60", 8) == 0)
     {
       *totpstepsize = 60;
-      *alg = OATH_TOTP;
+      *alg = OATH_ALGO_TOTP;
       if (strcmp (str, "HOTP/T60") == 0 || strcmp (str, "HOTP/T60/6") == 0)
 	*digits = 6;
       else if (strcmp (str, "HOTP/T60/7") == 0)
@@ -73,7 +73,7 @@ parse_type (const char *str, oath_alg_t * alg, unsigned *digits,
   else if (strncmp (str, "OCRA", 4) == 0)
     {
       printf ("OCRA string: '%s', length %d\n", str, strlen (str));
-      *alg = OATH_OCRA;
+      *alg = OATH_ALGO_OCRA;
       if (strlen (str) > 43)
 	return -1;
       strncpy (ocra_suite, str, strlen (str) + 1);
@@ -244,12 +244,12 @@ parse_usersfile (const char *username,
 
       switch (alg)
 	{
-	case OATH_HOTP:
+	case OATH_ALGO_HOTP:
 	  rc = oath_hotp_validate (secret, secret_length,
 				   start_moving_factor, window, otp);
 	  break;
 
-	case OATH_TOTP:
+	case OATH_ALGO_TOTP:
 	  if (prev_otp)
 	    {
 	      int prev_otp_pos, this_otp_pos, tmprc;
@@ -275,7 +275,7 @@ parse_usersfile (const char *username,
 				     otp);
 	  break;
 
-	case OATH_OCRA:
+	case OATH_ALGO_OCRA:
 	  rc =
 	    oath_ocra_parse_suite (ocra_suite, strlen (ocra_suite),
 				   &ocra_suite_info);

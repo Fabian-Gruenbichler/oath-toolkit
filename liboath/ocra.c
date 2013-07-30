@@ -65,8 +65,8 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 
   int i;
 
-  ocra_suite_info->password_hash = NO_HASH;
-  ocra_suite_info->ocra_hash = NO_HASH;
+  ocra_suite_info->password_hash = OATH_OCRA_HASH_NONE;
+  ocra_suite_info->ocra_hash = OATH_OCRA_HASH_NONE;
   ocra_suite_info->use_counter = 0;
   ocra_suite_info->timestamp_div = 0;
   ocra_suite_info->session_length = 0;
@@ -118,15 +118,15 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
     }
   if (strcasecmp (tmp, "SHA1") == 0)
     {
-      ocra_suite_info->ocra_hash = SHA1;
+      ocra_suite_info->ocra_hash = OATH_OCRA_HASH_SHA1;
     }
   else if (strcasecmp (tmp, "SHA256") == 0)
     {
-      ocra_suite_info->ocra_hash = SHA256;
+      ocra_suite_info->ocra_hash = OATH_OCRA_HASH_SHA256;
     }
   else if (strcasecmp (tmp, "SHA512") == 0)
     {
-      ocra_suite_info->ocra_hash = SHA512;
+      ocra_suite_info->ocra_hash = OATH_OCRA_HASH_SHA512;
     }
   else
     {
@@ -189,13 +189,13 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       switch (tolower (tmp[0]))
 	{
 	case 'a':
-	  ocra_suite_info->challenge_type = ALPHA;
+	  ocra_suite_info->challenge_type = OATH_OCRA_CHALLENGE_ALPHA;
 	  break;
 	case 'n':
-	  ocra_suite_info->challenge_type = NUM;
+	  ocra_suite_info->challenge_type = OATH_OCRA_CHALLENGE_NUM;
 	  break;
 	case 'h':
-	  ocra_suite_info->challenge_type = HEX;
+	  ocra_suite_info->challenge_type = OATH_OCRA_CHALLENGE_HEX;
 	  break;
 	default:
 	  printf ("challenge type wrongly specified: %c\n", tmp[0]);
@@ -237,7 +237,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       switch (tolower (tmp[0]))
 	{
 	case 'p':
-	  if (ocra_suite_info->password_hash != NO_HASH)
+	  if (ocra_suite_info->password_hash != OATH_OCRA_HASH_NONE)
 	    {
 	      printf ("password hash type specified twice\n");
 	      return -1;
@@ -245,17 +245,17 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 	  tmp++;
 	  if (strcasecmp (tmp, "SHA1") == 0)
 	    {
-	      ocra_suite_info->password_hash = SHA1;
+	      ocra_suite_info->password_hash = OATH_OCRA_HASH_SHA1;
 	      ocra_suite_info->datainput_length += 20;
 	    }
 	  else if (strcasecmp (tmp, "SHA256") == 0)
 	    {
-	      ocra_suite_info->password_hash = SHA256;
+	      ocra_suite_info->password_hash = OATH_OCRA_HASH_SHA256;
 	      ocra_suite_info->datainput_length += 32;
 	    }
 	  else if (strcasecmp (tmp, "SHA512") == 0)
 	    {
-	      ocra_suite_info->password_hash = SHA512;
+	      ocra_suite_info->password_hash = OATH_OCRA_HASH_SHA512;
 	      ocra_suite_info->datainput_length += 64;
 	    }
 	  else
@@ -447,7 +447,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
       curr_ptr += (128 - challenges_length);
     }
 
-  if (ocra_suite_info.password_hash != NO_HASH && pHash == NULL)
+  if (ocra_suite_info.password_hash != OATH_OCRA_HASH_NONE && pHash == NULL)
     {
       printf
 	("suite specified password hash to be used, but pHash is NULL!\n");
@@ -456,17 +456,17 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 
   switch (ocra_suite_info.password_hash)
     {
-    case SHA1:
+    case OATH_OCRA_HASH_SHA1:
       memcpy (curr_ptr, pHash, 20);
       curr_ptr += 20;
       break;
 
-    case SHA256:
+    case OATH_OCRA_HASH_SHA256:
       memcpy (curr_ptr, pHash, 32);
       curr_ptr += 32;
       break;
 
-    case SHA512:
+    case OATH_OCRA_HASH_SHA512:
       memcpy (curr_ptr, pHash, 64);
       curr_ptr += 64;
       break;
@@ -512,7 +512,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 
   switch (ocra_suite_info.ocra_hash)
     {
-    case SHA1:
+    case OATH_OCRA_HASH_SHA1:
       hs_size = GC_SHA1_DIGEST_SIZE;
       hs = (char *) malloc (hs_size * sizeof (char));
       rc = gc_hmac_sha1 (secret, secret_length,
@@ -643,7 +643,7 @@ oath_ocra_validate (const char *secret, size_t secret_length,
 
 /**
  * oath_ocra_generate_challenge:
- * @challenge_type: NUM, HEX or ALPHA; chars allowed in challenge
+ * @challenge_type: OATH_OCRA_CHALLENGE_NUM, OATH_OCRA_CHALLENGE_HEX or OATH_OCRA_CHALLENGE_ALPHA; chars allowed in challenge
  * @challenge_length: number of chars in challenge
  * @challenge: output buffer, needs space for @challenge_length+1 chars
  *
@@ -653,7 +653,7 @@ oath_ocra_validate (const char *secret, size_t secret_length,
  * Since: 2.6.0
  **/
 void
-oath_ocra_generate_challenge (ocra_challenge_t challenge_type,
+oath_ocra_generate_challenge (oath_ocra_challenge_t challenge_type,
 			      size_t challenge_length, char *challenge)
 {
   long int random_number;
@@ -662,7 +662,7 @@ oath_ocra_generate_challenge (ocra_challenge_t challenge_type,
   srandom (time (NULL));
   switch (challenge_type)
     {
-    case NUM:
+    case OATH_OCRA_CHALLENGE_NUM:
       {
 	char *tmp = challenge;
 	int i;
@@ -678,7 +678,7 @@ oath_ocra_generate_challenge (ocra_challenge_t challenge_type,
       }
       break;
 
-    case HEX:
+    case OATH_OCRA_CHALLENGE_HEX:
       {
 	char *tmp = challenge;
 	int i;
@@ -696,7 +696,7 @@ oath_ocra_generate_challenge (ocra_challenge_t challenge_type,
       }
       break;
 
-    case ALPHA:
+    case OATH_OCRA_CHALLENGE_ALPHA:
       {
 	char *tmp = challenge;
 	int i;
@@ -720,7 +720,7 @@ oath_ocra_generate_challenge (ocra_challenge_t challenge_type,
 
 /**
  * oath_ocra_convert_challenge:
- * @challenge_type: NUM, HEX or ALPHA; chars allowed in challenge
+ * @challenge_type: OATH_OCRA_CHALLENGE_NUM, OATH_OCRA_CHALLENGE_HEX or OATH_OCRA_CHALLENGE_ALPHA; chars allowed in challenge
  * @challenge_string: challenge string
  * @challenge_binary_length: length of returned byte-array
  *
@@ -734,7 +734,7 @@ oath_ocra_generate_challenge (ocra_challenge_t challenge_type,
  * Since: 2.6.0
  **/
 char *
-oath_ocra_convert_challenge (ocra_challenge_t challenge_type,
+oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
 			     char *challenge_string,
 			     size_t * challenge_binary_length)
 {
@@ -742,7 +742,7 @@ oath_ocra_convert_challenge (ocra_challenge_t challenge_type,
   size_t challenge_length = strlen (challenge_string);
   switch (challenge_type)
     {
-    case NUM:
+    case OATH_OCRA_CHALLENGE_NUM:
       {
 	unsigned long int num_value = strtoul (challenge_string, NULL, 10);
 	char temp[challenge_length + 2];
@@ -759,7 +759,7 @@ oath_ocra_convert_challenge (ocra_challenge_t challenge_type,
       }
       break;
 
-    case HEX:
+    case OATH_OCRA_CHALLENGE_HEX:
       {
 	char temp[challenge_length + 2];
 	strncpy (temp, challenge_string, challenge_length + 1);
@@ -774,7 +774,7 @@ oath_ocra_convert_challenge (ocra_challenge_t challenge_type,
       }
       break;
 
-    case ALPHA:
+    case OATH_OCRA_CHALLENGE_ALPHA:
       {
 	*challenge_binary_length = challenge_length;
 	challenges = malloc (*challenge_binary_length);
