@@ -264,10 +264,10 @@ oath_totp_validate2_callback (const char *secret,
 			      oath_validate_strcmp_function strcmp_otp,
 			      void *strcmp_handle)
 {
-    return oath_totp_validate3_callback (secret, secret_length, now,
-                        time_step_size, start_offset,
-                        digits, window, otp_pos, NULL,
-                        strcmp_otp, strcmp_handle);
+  return oath_totp_validate3_callback (secret, secret_length, now,
+				       time_step_size, start_offset,
+				       digits, window, otp_pos, NULL,
+				       strcmp_otp, strcmp_handle);
 }
 
 /**
@@ -292,7 +292,7 @@ oath_totp_validate2_callback (const char *secret,
  *   first position), or %OATH_INVALID_OTP if no OTP was found in OTP
  *   window, or an error code.
  *
- * Since: 2.2.0
+ * Since: 2.4.0
  **/
 int
 oath_totp_validate3 (const char *secret,
@@ -301,14 +301,13 @@ oath_totp_validate3 (const char *secret,
 		     unsigned time_step_size,
 		     time_t start_offset,
 		     size_t window,
-		     int *otp_pos,
-		     uint64_t *otp_counter,
-		     const char *otp)
+		     int *otp_pos, uint64_t * otp_counter, const char *otp)
 {
-     return oath_totp_validate3_callback (secret, secret_length, now,
+  return oath_totp_validate3_callback (secret, secret_length, now,
 				       time_step_size, start_offset,
-				       strlen (otp), window, otp_pos, otp_counter,
-				       _oath_strcmp_callback, (void *) otp); 
+				       strlen (otp), window, otp_pos,
+				       otp_counter, _oath_strcmp_callback,
+				       (void *) otp);
 }
 
 /**
@@ -353,7 +352,7 @@ oath_totp_validate3 (const char *secret,
  *   first position), or %OATH_INVALID_OTP if no OTP was found in OTP
  *   window, or an error code.
  *
- * Since: 2.2.0
+ * Since: 2.4.0
  **/
 int
 oath_totp_validate3_callback (const char *secret,
@@ -364,7 +363,7 @@ oath_totp_validate3_callback (const char *secret,
 			      unsigned digits,
 			      size_t window,
 			      int *otp_pos,
-			      uint64_t *otp_counter,
+			      uint64_t * otp_counter,
 			      oath_validate_strcmp_function strcmp_otp,
 			      void *strcmp_handle)
 {

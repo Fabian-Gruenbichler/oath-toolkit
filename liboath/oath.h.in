@@ -317,7 +317,6 @@ oath_totp_validate3_callback (const char *secret,
 
 /* OCRA */
 
-
 enum ocra_hash_t {
     NO_HASH,
     SHA1,

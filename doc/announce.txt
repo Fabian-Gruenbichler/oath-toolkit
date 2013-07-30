@@ -1,28 +1,18 @@
 To: oath-toolkit-help@nongnu.org
-Subject: OATH Toolkit 2.0.2
+Subject: OATH Toolkit 2.4.0
 <#part sign=pgpmime>
-No PSKC change this time, only improvements to liboath/oathtool.
+This merges Fabian's TOTP fix.  I'm hoping the next major release will
+implement OCRA, Fabian has been busy working on that...
 
 Happy hacking,
 Simon
 
-* Version 2.0.2 (released 2013-01-08)
-
-** oathtool: Base32 decoding of keys are now more liberal in what accepts.
-It can now accept keys on the "gr6d 5br7 25s6 vnck v4vl hlao re"
-format, i.e., base32 data delimited using SPC and without padding.
-The old proper base32 format is still supported.
-
-** liboath: oath_base32_decode now ignores SPC and adds pad characters.
-
-** liboath: If password in usersfile is + then ignore supplied password.
-This enables the pam_oath module to be used with external password
-verification.  Based on patch from Ilkka Virta <itvirta@iki.fi>.
-
-** tests: Fixed expiry date of some certificates used in the test suite.
-The last release would only complete 'make check' during a 30 day window.
-
-** API and ABI is backwards compatible with the previous version.
+** liboath: Add new API methods for validating TOTP OTPs
+The new methods (oath_totp_validate3 and oath_totp_validate3_callback)
+introduce a new parameter *otp_counter, which is set to the actual
+counter used to calculate the OTP (unless it is a NULL pointer). This
+allows for easier OTP replay detection in applications using liboath.
+Patch from Fabian Grünbichler <fabian.gruenbichler@tuwien.ac.at>.
 
 The OATH Toolkit makes it easy to build one-time password
 authentication systems.  It contains shared libraries, command line
@@ -68,19 +58,21 @@ are invited to join our oath-toolkit-help mailing list, see:
   https://lists.nongnu.org/mailman/listinfo/oath-toolkit-help
 
 Here are the compressed sources of the entire package:
-  http://download.savannah.nongnu.org/releases/oath-toolkit/oath-toolkit-2.0.2.tar.gz (3.8MB)
-  http://download.savannah.nongnu.org/releases/oath-toolkit/oath-toolkit-2.0.2.tar.gz.sig (OpenPGP)
+  http://download.savannah.nongnu.org/releases/oath-toolkit/oath-toolkit-2.4.0.tar.gz
+(4.0MB)
+  http://download.savannah.nongnu.org/releases/oath-toolkit/oath-toolkit-2.4.0.tar.gz.sig
+(OpenPGP)
 
 The software is cryptographically signed by the author using an OpenPGP
 key identified by the following information:
 
-pub   1280R/B565716F 2002-05-05 [expires: 2013-05-10]
-      Key fingerprint = 0424 D4EE 81A0 E3D1 19C6  F835 EDA2 1E94 B565 716F
+pub   1280R/B565716F 2002-05-05 [expires: 2014-05-11]
 uid                  Simon Josefsson <simon@josefsson.org>
+uid                  Simon Josefsson <simon@yubico.com>
 sub   2048R/105E722E 2012-03-13 [expires: 2013-07-26]
 sub   2048R/728AB82C 2012-03-13 [expires: 2013-07-26]
 sub   2048R/9394F626 2012-03-13 [expires: 2013-07-26]
-sub   1280R/4D5D40AE 2002-05-05 [expires: 2013-05-10]
+sub   1280R/4D5D40AE 2002-05-05 [expires: 2014-05-11]
 
 The key is available from:
   http://josefsson.org/key.txt
@@ -88,8 +80,9 @@ The key is available from:
 
 Here are the SHA-1 and SHA-224 checksums:
 
-3672924a9d9c3373ec62a6b79e9aa1e846c4d178  oath-toolkit-2.0.2.tar.gz
-5933a431566d606f83a1f971fab3792b6d4d255b8c70d00752550cb4  oath-toolkit-2.0.2.tar.gz
+89d2cd30dd401a3f6973ec3c2b26f1cb737764a7  oath-toolkit-2.4.0.tar.gz
+1c165a851a76c3e308ab18c61d1a22b19b93f04b1197ba1dae2e1ec6
+oath-toolkit-2.4.0.tar.gz
 
 General information on contributing:
   http://www.nongnu.org/oath-toolkit/contrib.html

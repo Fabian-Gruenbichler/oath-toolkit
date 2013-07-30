@@ -1,6 +1,24 @@
 OATH Toolkit NEWS -- History of user-visible changes.           -*- outline -*-
 Copyright (C) 2009-2013 Simon Josefsson.  Licensed under the GPLv3+.
 
+* Version 2.6.0
+
+** liboath: Add new API methods for generating and validating OCRA values. See
+API documentation for details.
+
+** oathtool: Introduce support for OCRA based on new API methods
+
+** pam module: Introduce support for one-way authentication using OCRA
+
+* Version 2.4.0 (released 2013-07-21)
+
+** liboath: Add new API methods for validating TOTP OTPs
+The new methods (oath_totp_validate3 and oath_totp_validate3_callback)
+introduce a new parameter *otp_counter, which is set to the actual
+counter used to calculate the OTP (unless it is a NULL pointer). This
+allows for easier OTP replay detection in applications using liboath.
+Patch from Fabian Grünbichler <fabian.gruenbichler@tuwien.ac.at>.
+
 * Version 2.2.0 (released 2013-07-07)
 
 ** liboath: Add new API methods for validating TOTP OTPs
