@@ -252,7 +252,6 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
     {
       printf
 	("mandatory challenge string not found in datainput, aborting\n");
-      printf (tmp);
       return -1;
     }
 
