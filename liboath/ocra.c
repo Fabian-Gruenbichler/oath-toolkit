@@ -710,7 +710,6 @@ oath_ocra_generate_challenge (oath_ocra_challenge_t challenge_type,
 			      size_t challenge_length, char *challenge)
 {
   long int random_number;
-  long int max;
   char *tmp = challenge;
   uint8_t i;
 
@@ -760,6 +759,9 @@ oath_ocra_generate_challenge (oath_ocra_challenge_t challenge_type,
 	  }
 	*tmp = '\0';
       }
+      break;
+
+    default:
       break;
     }
 }
@@ -840,6 +842,9 @@ oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
 	challenges = malloc (*challenge_binary_length);
 	strncpy (challenges, challenge_string, *challenge_binary_length);
       }
+      break;
+
+    default:
       break;
     }
   return challenges;
