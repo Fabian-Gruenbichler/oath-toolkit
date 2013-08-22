@@ -711,15 +711,14 @@ oath_ocra_generate_challenge (oath_ocra_challenge_t challenge_type,
 {
   long int random_number;
   long int max;
+  char *tmp = challenge;
+  uint8_t i;
 
   srandom (time (NULL));
   switch (challenge_type)
     {
     case OATH_OCRA_CHALLENGE_NUM:
       {
-	char *tmp = challenge;
-	int i;
-
 	for (i = 0; i < challenge_length; i++)
 	  {
 	    random_number = random () % 10;
@@ -733,9 +732,6 @@ oath_ocra_generate_challenge (oath_ocra_challenge_t challenge_type,
 
     case OATH_OCRA_CHALLENGE_HEX:
       {
-	char *tmp = challenge;
-	int i;
-
 	for (i = 0; i < challenge_length; i++)
 	  {
 	    random_number = random () % 16;
@@ -751,9 +747,6 @@ oath_ocra_generate_challenge (oath_ocra_challenge_t challenge_type,
 
     case OATH_OCRA_CHALLENGE_ALPHA:
       {
-	char *tmp = challenge;
-	int i;
-
 	for (i = 0; i < challenge_length; i++)
 	  {
 	    random_number = random () % 62;
