@@ -29,14 +29,19 @@
 #include <inttypes.h>
 #include "gc.h"
 
+int strtouint (char *string, uint8_t * uint);
 
 int
 strtouint (char *string, uint8_t * uint)
 {
   if (*string == '\0')
     return -1;
-  for (*uint = 0; (*string - '0' < 10) && (*string - '0' >= 0); *string++)
-    *uint = 10 * (*uint) + (unsigned) (*string - '0');
+  *uint = 0;
+  while ((*string - '0' < 10) && (*string - '0' >= 0))
+    {
+      *uint = 10 * (*uint) + (unsigned) (*string - '0');
+      string++;
+    }
   if (*string != '\0')
     return -1;
   return 0;
