@@ -47,6 +47,26 @@ strtouint (char *string, uint8_t * uint)
   return 0;
 }
 
+int strtouint_16 (char *string, uint16_t * uint);
+
+int
+strtouint_16 (char *string, uint16_t * uint)
+{
+  if (*string == '\0')
+    return -1;
+  *uint = 0;
+  while ((*string - '0' < 10) && (*string - '0' >= 0))
+    {
+      *uint = 10 * (*uint) + (unsigned) (*string - '0');
+      string++;
+    }
+  if (*string != '\0')
+    return -1;
+  return 0;
+}
+
+
+
 /**
  * oath_ocra_parse_suite:
  * @ocra_suite: string to be parsed
@@ -295,7 +315,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 	      return -1;
 	    }
 	  tmp++;
-	  if (strtouint (tmp, &(ocra_suite_info->session_length)) != 0)
+	  if (strtouint_16 (tmp, &(ocra_suite_info->session_length)) != 0)
 	    {
 	      printf ("couldn't convert session length specification\n");
 	      return -1;

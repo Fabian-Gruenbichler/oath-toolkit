@@ -332,7 +332,7 @@ typedef struct ocra_suite {
 		oath_ocra_challenge_t challenge_type;
 		uint8_t challenge_length;
 		uint16_t timestamp_div;
-		uint8_t session_length;
+		uint16_t session_length;
 		uint8_t digits;
 		size_t datainput_length;
 } ocra_suite_t;
