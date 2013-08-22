@@ -95,8 +95,6 @@ oath_retrieve_mode (const char *usersfile,
   FILE *infh;
   char *line = NULL;
   size_t n = 0;
-  int rc;
-
 
   infh = fopen (usersfile, "r");
   if (!infh)
@@ -107,7 +105,6 @@ oath_retrieve_mode (const char *usersfile,
       char *saveptr;
       char *p = strtok_r (line, whitespace, &saveptr);
       unsigned digits, totpstepsize;
-      int rc = 0;
 
       if (p == NULL)
 	continue;
