@@ -88,8 +88,6 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
   char *alg, *crypto, *datainput, *tmp;
   char *save_ptr_inner, *save_ptr_outer;
 
-  int i;
-
   ocra_suite_info->password_hash = OATH_OCRA_HASH_NONE;
   ocra_suite_info->ocra_hash = OATH_OCRA_HASH_NONE;
   ocra_suite_info->use_counter = 0;
@@ -107,8 +105,6 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       printf ("couldn't allocate temp buffer for ocra_suite\n");
       return -1;
     }
-
-  int rc;
 
   strncpy (suite_tmp, ocra_suite, strlen (ocra_suite) + 1);
 
