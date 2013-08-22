@@ -80,7 +80,13 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       printf ("ocra_suite_info is null!\n");
       return -1;
     }
-  char suite_tmp[strlen (ocra_suite)];	//needed as working copy for strtok_r
+
+  char *suite_tmp = calloc (strlen (ocra_suite), sizeof (char));	//needed as working copy for strtok_r
+  if (suite_tmp == NULL)
+    {
+      printf ("couldn't allocate temp buffer for ocra_suite\n");
+      return -1;
+    }
 
   int rc;
 
@@ -90,11 +96,13 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
   if (alg == NULL)
     {
       printf ("alg tokenization returned NULL!\n");
+      free (suite_tmp);
       return -1;
     }
   if (strcasecmp (alg, "OCRA-1") != 0)
     {
       printf ("unsupported algorithm requested: %s\n", alg);
+      free (suite_tmp);
       return -1;
     }
 
@@ -102,23 +110,27 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
   if (crypto == NULL)
     {
       printf ("crypto tokenization returned NULL!\n");
+      free (suite_tmp);
       return -1;
     }
   tmp = strtok_r (crypto, "-", &save_ptr_inner);
   if (tmp == NULL)
     {
       printf ("hash family tokenization returned NULL!\n");
+      free (suite_tmp);
       return -1;
     }
   if (strcasecmp (tmp, "HOTP") != 0)
     {
       printf ("only HOTP is supported as hash family (was: %s)\n", tmp);
+      free (suite_tmp);
       return -1;
     }
   tmp = strtok_r (NULL, "-", &save_ptr_inner);
   if (tmp == NULL)
     {
       printf ("hash funktion tokenization returned NULL\n");
+      free (suite_tmp);
       return -1;
     }
   if (strcasecmp (tmp, "SHA1") == 0)
@@ -138,6 +150,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       printf
 	("only SHA1, 256 and 512 are supported as hash algorithms (was: %s)\n",
 	 tmp);
+      free (suite_tmp);
       return -1;
     }
 
@@ -145,11 +158,13 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
   if (tmp == NULL)
     {
       printf ("truncation digits tokenization returned NULL\n");
+      free (suite_tmp);
       return -1;
     }
   if (strtouint (tmp, &(ocra_suite_info->digits)) != 0)
     {
       printf ("converting truncation digits failed.\n");
+      free (suite_tmp);
       return -1;
     }
   if (ocra_suite_info->digits != 0 &&
@@ -158,10 +173,14 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       printf
 	("truncation digits must either be 0 or between 4 and 10! (%d)\n",
 	 ocra_suite_info->digits);
+      free (suite_tmp);
       return -1;
     }
 
   datainput = strtok_r (NULL, ":", &save_ptr_outer);
+
+  free (suite_tmp);		//no longer needed
+
   if (datainput == NULL)
     {
       printf ("data input tokenization returned NULL!\n");
