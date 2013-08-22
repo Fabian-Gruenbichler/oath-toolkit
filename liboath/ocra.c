@@ -786,7 +786,7 @@ oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
 			     char *challenge_string,
 			     size_t * challenge_binary_length)
 {
-  char *challenges;
+  char *challenges = NULL;
   size_t challenge_length = strlen (challenge_string);
   switch (challenge_type)
     {
@@ -809,6 +809,11 @@ oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
 	  }
 	oath_hex2bin (temp, NULL, challenge_binary_length);
 	challenges = malloc (*challenge_binary_length);
+	if (challenges == NULL)
+	  {
+	    printf ("couldn't allocate challenge buffer\n");
+	    return NULL;
+	  }
 	oath_hex2bin (temp, challenges, challenge_binary_length);
 	free (temp);
       }
@@ -831,6 +836,12 @@ oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
 	  }
 	oath_hex2bin (temp, NULL, challenge_binary_length);
 	challenges = malloc (*challenge_binary_length);
+	if (challenges == NULL)
+	  {
+	    printf ("couldn't allocate challenge buffer\n");
+	    return NULL;
+	  }
+
 	oath_hex2bin (temp, challenges, challenge_binary_length);
 	free (temp);
       }
@@ -840,6 +851,12 @@ oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
       {
 	*challenge_binary_length = challenge_length;
 	challenges = malloc (*challenge_binary_length);
+	if (challenges == NULL)
+	  {
+	    printf ("couldn't allocate challenge buffer\n");
+	    return NULL;
+	  }
+
 	strncpy (challenges, challenge_string, *challenge_binary_length);
       }
       break;
