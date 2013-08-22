@@ -445,7 +445,14 @@ oath_ocra_generate (const char *secret, size_t secret_length,
   if (rc != OATH_OK)
     return rc;
 
-  char byte_array[ocra_suite_info.datainput_length];
+  char *byte_array = malloc (ocra_suite_info.datainput_length);
+
+  if (byte_array == NULL)
+    {
+      printf ("couldn't allocate memory for byte array\n");
+      return -1;
+    }
+
   char *curr_ptr = byte_array;
 
   memcpy (curr_ptr, ocra_suite, ocra_suite_length);
@@ -459,7 +466,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
       char tmp_str[16];
       sprintf (tmp_str, "%016" PRIX64, counter);
       size_t len = 8;
-      char tmp_str2[len];
+      char tmp_str2[8];
       oath_hex2bin (tmp_str, tmp_str2, &len);
       memcpy (curr_ptr, tmp_str2, 8);
       curr_ptr += 8;
@@ -468,12 +475,14 @@ oath_ocra_generate (const char *secret, size_t secret_length,
   if (challenges == NULL)
     {
       printf ("challenges are mandatory, but pointer = NULL!\n");
+      free (byte_array);
       return -1;
     }
 
   if (challenges_length > 128)
     {
       printf ("challenges are not allowed to be longer than 128!\n");
+      free (byte_array);
       return -1;
     }
 
@@ -490,6 +499,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
     {
       printf
 	("suite specified password hash to be used, but pHash is NULL!\n");
+      free (byte_array);
       return -1;
     }
 
@@ -520,6 +530,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 	{
 	  printf
 	    ("suite specified session information to be used, but session is NULL!\n");
+	  free (byte_array);
 	  return -1;
 	}
       memcpy (curr_ptr, session, ocra_suite_info.session_length);
@@ -569,8 +580,11 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 
     default:
       printf ("unsupported hash\n");
+      free (byte_array);
       return -1;
     }
+
+  free (byte_array);
 
   long S;
   uint8_t offset = hs[hs_size - 1] & 0x0f;
@@ -784,7 +798,13 @@ oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
     case OATH_OCRA_CHALLENGE_NUM:
       {
 	unsigned long int num_value = strtoul (challenge_string, NULL, 10);
-	char temp[challenge_length + 2];
+	char *temp = malloc (challenge_length + 2);
+	if (temp == NULL)
+	  {
+	    printf
+	      ("couldn't allocate temp buffer for challenge conversion\n");
+	    return NULL;
+	  }
 	sprintf (temp, "%lX", num_value);
 	size_t hex_length = strlen (temp);
 	if (hex_length % 2 == 1)
@@ -795,12 +815,19 @@ oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
 	oath_hex2bin (temp, NULL, challenge_binary_length);
 	challenges = malloc (*challenge_binary_length);
 	oath_hex2bin (temp, challenges, challenge_binary_length);
+	free (temp);
       }
       break;
 
     case OATH_OCRA_CHALLENGE_HEX:
       {
-	char temp[challenge_length + 2];
+	char *temp = malloc (challenge_length + 2);
+	if (temp == NULL)
+	  {
+	    printf
+	      ("couldn't allocate temp buffer for challenge conversion\n");
+	    return NULL;
+	  }
 	strncpy (temp, challenge_string, challenge_length + 1);
 	if (challenge_length % 2 == 1)
 	  {
@@ -810,6 +837,7 @@ oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
 	oath_hex2bin (temp, NULL, challenge_binary_length);
 	challenges = malloc (*challenge_binary_length);
 	oath_hex2bin (temp, challenges, challenge_binary_length);
+	free (temp);
       }
       break;
 
