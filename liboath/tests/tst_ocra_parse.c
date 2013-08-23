@@ -40,7 +40,7 @@ const struct
   {
     "OCRA-2:HOTP-SHA1-6:QN08",
     {
-  }, -1},
+  }, OATH_SUITE_PARSE_ERROR},
   {
     "OCRA-1:HOTP-SHA256-6:C-QA10",
     {
@@ -50,7 +50,7 @@ const struct
     "OCRA-1:HOTP-SHA512-2:C-QH24",
     {
   1, OATH_OCRA_HASH_NONE, OATH_OCRA_HASH_SHA512, OATH_OCRA_CHALLENGE_HEX,
-	24, 0, 0, 2, 0}, -1},
+	24, 0, 0, 2, 0}, OATH_SUITE_PARSE_ERROR},
   {
     "OCRA-1:HOTP-SHA1-0:C-QA20-PSHA512-S128-T12M",
     {
