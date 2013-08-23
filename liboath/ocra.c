@@ -94,13 +94,14 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
   ocra_suite_info->use_counter = 0;
   ocra_suite_info->timestamp_div = 0;
   ocra_suite_info->session_length = 0;
+
   if (ocra_suite_info == NULL)
     {
       printf ("ocra_suite_info is null!\n");
       return OATH_SUITE_PARSE_ERROR;
     }
 
-  suite_tmp = calloc (strlen (ocra_suite)+1, sizeof (char));
+  suite_tmp = calloc (strlen (ocra_suite) + 1, sizeof (char));
   if (suite_tmp == NULL)
     {
       printf ("couldn't allocate temp buffer for ocra_suite\n");
@@ -116,6 +117,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       free (suite_tmp);
       return OATH_SUITE_PARSE_ERROR;
     }
+
   if (strcasecmp (alg, "OCRA-1") != 0)
     {
       printf ("unsupported algorithm requested: %s\n", alg);
@@ -130,6 +132,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       free (suite_tmp);
       return OATH_SUITE_PARSE_ERROR;
     }
+
   tmp = strtok_r (crypto, "-", &save_ptr_inner);
   if (tmp == NULL)
     {
@@ -137,12 +140,14 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       free (suite_tmp);
       return OATH_SUITE_PARSE_ERROR;
     }
+
   if (strcasecmp (tmp, "HOTP") != 0)
     {
       printf ("only HOTP is supported as hash family (was: %s)\n", tmp);
       free (suite_tmp);
       return OATH_SUITE_PARSE_ERROR;
     }
+
   tmp = strtok_r (NULL, "-", &save_ptr_inner);
   if (tmp == NULL)
     {
@@ -150,6 +155,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       free (suite_tmp);
       return OATH_SUITE_PARSE_ERROR;
     }
+
   if (strcasecmp (tmp, "SHA1") == 0)
     {
       ocra_suite_info->ocra_hash = OATH_OCRA_HASH_SHA1;
@@ -178,6 +184,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       free (suite_tmp);
       return OATH_SUITE_PARSE_ERROR;
     }
+
   if (strtouint (tmp, &(ocra_suite_info->digits)) != 0)
     {
       printf ("converting truncation digits failed.\n");
@@ -195,7 +202,6 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
     }
 
   datainput = strtok_r (NULL, ":", &save_ptr_outer);
-
   free (suite_tmp);
 
   if (datainput == NULL)
@@ -439,14 +445,30 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 {
 
   ocra_suite_t ocra_suite_info;
+  int rc;
+  char *byte_array = NULL;
+  char *curr_ptr = NULL;
 
-  int rc = oath_ocra_parse_suite (ocra_suite, ocra_suite_length,
-				  &ocra_suite_info);
+  uint64_t time_steps = 0;
+
+  char tmp_str[16];
+  size_t tmp_len;
+
+  char *hs;
+  size_t hs_size;
+
+  uint8_t offset;
+  long S;
+
+  int otp_len;
+
+  rc = oath_ocra_parse_suite (ocra_suite, ocra_suite_length,
+			      &ocra_suite_info);
 
   if (rc != OATH_OK)
     return rc;
 
-  char *byte_array = malloc (ocra_suite_info.datainput_length);
+  byte_array = malloc (ocra_suite_info.datainput_length);
 
   if (byte_array == NULL)
     {
@@ -454,7 +476,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
       return OATH_MALLOC_ERROR;
     }
 
-  char *curr_ptr = byte_array;
+  curr_ptr = byte_array;
 
   memcpy (curr_ptr, ocra_suite, ocra_suite_length);
   curr_ptr += ocra_suite_length;
@@ -464,12 +486,9 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 
   if (ocra_suite_info.use_counter)
     {
-      char tmp_str[16];
+      tmp_len = 8;
       sprintf (tmp_str, "%016" PRIX64, counter);
-      size_t len = 8;
-      char tmp_str2[8];
-      oath_hex2bin (tmp_str, tmp_str2, &len);
-      memcpy (curr_ptr, tmp_str2, 8);
+      oath_hex2bin (tmp_str, curr_ptr, &tmp_len);
       curr_ptr += 8;
     }
 
@@ -540,11 +559,10 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 
   if (ocra_suite_info.timestamp_div != 0)
     {
-      uint64_t time_steps = now / ocra_suite_info.timestamp_div;
-      char tmp_str[16];
+      time_steps = now / ocra_suite_info.timestamp_div;
+      tmp_len = 8;
       sprintf (tmp_str, "%016" PRIX64, time_steps);
-      size_t len = 8;
-      oath_hex2bin (tmp_str, curr_ptr, &len);
+      oath_hex2bin (tmp_str, curr_ptr, &tmp_len);
     }
 
   /*
@@ -555,10 +573,6 @@ oath_ocra_generate (const char *secret, size_t secret_length,
      printf(hexstring);
      printf("\n"); 
    */
-
-
-  char *hs;
-  size_t hs_size;
 
   switch (ocra_suite_info.ocra_hash)
     {
@@ -596,8 +610,8 @@ oath_ocra_generate (const char *secret, size_t secret_length,
       printf ("hash calculation failed\n");
       return OATH_CRYPTO_ERROR;
     }
-  long S;
-  uint8_t offset = hs[hs_size - 1] & 0x0f;
+
+  offset = hs[hs_size - 1] & 0x0f;
 
   S = (((hs[offset] & 0x7f) << 24)
        | ((hs[offset + 1] & 0xff) << 16)
@@ -644,10 +658,10 @@ oath_ocra_generate (const char *secret, size_t secret_length,
     }
 
   {
-    int len = snprintf (output_ocra, ocra_suite_info.digits + 1, "%.*ld",
+    otp_len = snprintf (output_ocra, ocra_suite_info.digits + 1, "%.*ld",
 			ocra_suite_info.digits, S);
     output_ocra[ocra_suite_info.digits] = '\0';
-    if (len <= 0 || ((unsigned) len) != ocra_suite_info.digits)
+    if (otp_len <= 0 || ((unsigned) otp_len) != ocra_suite_info.digits)
       return OATH_PRINTF_ERROR;
   }
 
