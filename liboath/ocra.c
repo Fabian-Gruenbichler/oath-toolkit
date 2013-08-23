@@ -544,7 +544,6 @@ oath_ocra_generate (const char *secret, size_t secret_length,
       sprintf (tmp_str, "%016" PRIX64, time_steps);
       size_t len = 8;
       oath_hex2bin (tmp_str, curr_ptr, &len);
-      curr_ptr += 8;
     }
 
   /*
