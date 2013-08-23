@@ -58,7 +58,8 @@ static const err_t errors[] = {
   ERR (OATH_FILE_SYNC_ERROR, "System error when syncing file to disk"),
   ERR (OATH_FILE_CLOSE_ERROR, "System error when closing file"),
   ERR (OATH_SUITE_PARSE_ERROR, "Error while parsing OCRA suite string"),
-  ERR (OATH_SUITE_MISMATCH_ERROR, "Mismatch between OCRA suite parameters and data input")
+  ERR (OATH_SUITE_MISMATCH_ERROR,
+       "Mismatch between OCRA suite parameters and data input")
 };
 
 /**
