@@ -134,8 +134,8 @@ main (int argc, char *argv[])
   oath_alg_t mode = OATH_ALGO_HOTP;
 
   size_t bin_length;
-  char *challenges_bin;
-  char *phash_bin;
+  char *challenges_bin = NULL;
+  char *phash_bin = NULL;
 
   set_program_name (argv[0]);
 
@@ -373,19 +373,32 @@ main (int argc, char *argv[])
 	{
 	  rc = oath_hex2bin (args_info.phash_arg, NULL, &bin_length);
 	  phash_bin = calloc (bin_length, sizeof (char));
-	  rc = oath_hex2bin (args_info.phash_arg, phash_bin, &bin_length);
-	  if (rc != OATH_OK)
+	  if (rc != OATH_OK || phash_bin == NULL)
 	    error (EXIT_FAILURE, 0,
 		   "could not convert phash string to byte-array");
+
+	  rc = oath_hex2bin (args_info.phash_arg, phash_bin, &bin_length);
+	  if (rc != OATH_OK)
+	    {
+	      free (phash_bin);
+	      error (EXIT_FAILURE, 0,
+		     "could not convert phash string to byte-array");
+	    }
 	}
       bin_length = 0;
       rc = oath_hex2bin (args_info.challenges_arg, NULL, &bin_length);
       challenges_bin = calloc (bin_length, sizeof (char));
+      if (rc != OATH_OK || challenges_bin == NULL)
+	error (EXIT_FAILURE, 0,
+	       "could not convert challenges string to byte-array");
       rc =
 	oath_hex2bin (args_info.challenges_arg, challenges_bin, &bin_length);
       if (rc != OATH_OK)
-	error (EXIT_FAILURE, 0,
-	       "could not convert challenges string to byte-array");
+	{
+	  free (challenges_bin);
+	  error (EXIT_FAILURE, 0,
+		 "could not convert challenges string to byte-array");
+	}
       now = time (NULL);
       when = parse_time (args_info.now_arg, now);
       if (generate_otp_p (args_info.inputs_num))
