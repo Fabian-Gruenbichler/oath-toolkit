@@ -96,14 +96,14 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
   if (ocra_suite_info == NULL)
     {
       printf ("ocra_suite_info is null!\n");
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
 
   char *suite_tmp = calloc (strlen (ocra_suite), sizeof (char));	//needed as working copy for strtok_r
   if (suite_tmp == NULL)
     {
       printf ("couldn't allocate temp buffer for ocra_suite\n");
-      return -1;
+      return OATH_MALLOC_ERROR;
     }
 
   strncpy (suite_tmp, ocra_suite, strlen (ocra_suite) + 1);
@@ -113,13 +113,13 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
     {
       printf ("alg tokenization returned NULL!\n");
       free (suite_tmp);
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
   if (strcasecmp (alg, "OCRA-1") != 0)
     {
       printf ("unsupported algorithm requested: %s\n", alg);
       free (suite_tmp);
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
 
   crypto = strtok_r (NULL, ":", &save_ptr_outer);
@@ -127,27 +127,27 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
     {
       printf ("crypto tokenization returned NULL!\n");
       free (suite_tmp);
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
   tmp = strtok_r (crypto, "-", &save_ptr_inner);
   if (tmp == NULL)
     {
       printf ("hash family tokenization returned NULL!\n");
       free (suite_tmp);
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
   if (strcasecmp (tmp, "HOTP") != 0)
     {
       printf ("only HOTP is supported as hash family (was: %s)\n", tmp);
       free (suite_tmp);
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
   tmp = strtok_r (NULL, "-", &save_ptr_inner);
   if (tmp == NULL)
     {
       printf ("hash funktion tokenization returned NULL\n");
       free (suite_tmp);
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
   if (strcasecmp (tmp, "SHA1") == 0)
     {
@@ -167,7 +167,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 	("only SHA1, 256 and 512 are supported as hash algorithms (was: %s)\n",
 	 tmp);
       free (suite_tmp);
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
 
   tmp = strtok_r (NULL, "-", &save_ptr_inner);
@@ -175,13 +175,13 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
     {
       printf ("truncation digits tokenization returned NULL\n");
       free (suite_tmp);
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
   if (strtouint (tmp, &(ocra_suite_info->digits)) != 0)
     {
       printf ("converting truncation digits failed.\n");
       free (suite_tmp);
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
   if (ocra_suite_info->digits != 0 &&
       ((ocra_suite_info->digits) < 4 || (ocra_suite_info->digits) > 10))
@@ -190,7 +190,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 	("truncation digits must either be 0 or between 4 and 10! (%d)\n",
 	 ocra_suite_info->digits);
       free (suite_tmp);
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
 
   datainput = strtok_r (NULL, ":", &save_ptr_outer);
@@ -200,7 +200,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
   if (datainput == NULL)
     {
       printf ("data input tokenization returned NULL!\n");
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
 
   ocra_suite_info->datainput_length = ocra_suite_length + 1;	//in byte
@@ -209,7 +209,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
   if (tmp == NULL)
     {
       printf ("NULL returned while trying to tokenize datainput\n");
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
   if (tolower (tmp[0]) == 'c' && tmp[1] == '\0')
     {
@@ -221,7 +221,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
   if (tmp == NULL)
     {
       printf ("NULL returned while trying to tokenize datainput\n");
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
   if (tolower (tmp[0]) == 'q')
     {
@@ -239,26 +239,26 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 	  break;
 	default:
 	  printf ("challenge type wrongly specified: %c\n", tmp[0]);
-	  return -1;
+	  return OATH_SUITE_PARSE_ERROR;
 	}
       tmp++;
       if (strtouint (tmp, &(ocra_suite_info->challenge_length)) != 0)
 	{
 	  printf ("couldn't convert challenge length!\n");
 	  printf ("string: %s\n", tmp);
-	  return -1;
+	  return OATH_SUITE_PARSE_ERROR;
 	}
       if (ocra_suite_info->challenge_length < 4
 	  || ocra_suite_info->challenge_length > 64)
 	{
 	  printf ("challenge length not between 4 and 64 (%d)\n",
 		  ocra_suite_info->challenge_length);
-	  return -1;
+	  return OATH_SUITE_PARSE_ERROR;
 	}
       if (tmp[2] != '\0')
 	{
 	  printf ("challenge specification not correct (not QFXX)\n");
-	  return -1;
+	  return OATH_SUITE_PARSE_ERROR;
 	}
 
       ocra_suite_info->datainput_length += 128;	//challenges need zero-padding anyway!
@@ -268,7 +268,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
     {
       printf
 	("mandatory challenge string not found in datainput, aborting\n");
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
 
   while (tmp != NULL)
@@ -279,7 +279,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 	  if (ocra_suite_info->password_hash != OATH_OCRA_HASH_NONE)
 	    {
 	      printf ("password hash type specified twice\n");
-	      return -1;
+	      return OATH_SUITE_PARSE_ERROR;
 	    }
 	  tmp++;
 	  if (strcasecmp (tmp, "SHA1") == 0)
@@ -300,7 +300,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 	  else
 	    {
 	      printf ("incorrect password hash function specified\n");
-	      return -1;
+	      return OATH_SUITE_PARSE_ERROR;
 	    }
 	  break;
 
@@ -308,24 +308,24 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 	  if (ocra_suite_info->session_length > 0)
 	    {
 	      printf ("session specified twice\n");
-	      return -1;
+	      return OATH_SUITE_PARSE_ERROR;
 	    }
 	  tmp++;
 	  if (strtouint_16 (tmp, &(ocra_suite_info->session_length)) != 0)
 	    {
 	      printf ("couldn't convert session length specification\n");
-	      return -1;
+	      return OATH_SUITE_PARSE_ERROR;
 	    }
 	  if (ocra_suite_info->session_length > 512)
 	    {
 	      printf ("session length too big (>512)\n");
-	      return -1;
+	      return OATH_SUITE_PARSE_ERROR;
 	    }
 	  if (tmp[3] != '\0')
 	    {
 	      printf
 		("session length specification not correct (not SXXX)\n");
-	      return -1;
+	      return OATH_SUITE_PARSE_ERROR;
 	    }
 	  ocra_suite_info->datainput_length +=
 	    ocra_suite_info->session_length;
@@ -335,7 +335,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 	  if (ocra_suite_info->timestamp_div != 0)
 	    {
 	      printf ("timestep size specified twice\n");
-	      return -1;
+	      return OATH_SUITE_PARSE_ERROR;
 	    }
 	  tmp++;
 	  for (ocra_suite_info->timestamp_div = 0;
@@ -349,7 +349,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 		  || ocra_suite_info->timestamp_div == 0)
 		{
 		  printf ("ocra_suite_info->timestamp_div invalid\n");
-		  return -1;
+		  return OATH_SUITE_PARSE_ERROR;
 		}
 	      break;
 
@@ -358,7 +358,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 		  || ocra_suite_info->timestamp_div == 0)
 		{
 		  printf ("ocra_suite_info->timestamp_div invalid\n");
-		  return -1;
+		  return OATH_SUITE_PARSE_ERROR;
 		}
 	      ocra_suite_info->timestamp_div *= 60;
 	      break;
@@ -367,27 +367,27 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 	      if (ocra_suite_info->timestamp_div > 48)
 		{
 		  printf ("ocra_suite_info->timestamp_div invalid\n");
-		  return -1;
+		  return OATH_SUITE_PARSE_ERROR;
 		}
 	      ocra_suite_info->timestamp_div *= 3600;
 	      break;
 
 	    default:
 	      printf ("invalid timestep unit specified\n");
-	      return -1;
+	      return OATH_SUITE_PARSE_ERROR;
 	    }
 	  if (tmp[1] != '\0')
 	    {
 	      printf
 		("timestep specification not correctly formatted (not TXXU)\n");
-	      return -1;
+	      return OATH_SUITE_PARSE_ERROR;
 	    }
 	  ocra_suite_info->datainput_length += 8;
 	  break;
 
 	default:
 	  printf ("invalid data input string.. (%c)\n", tmp[0]);
-	  return -1;
+	  return OATH_SUITE_PARSE_ERROR;
 	}
       tmp = strtok_r (NULL, "-", &save_ptr_inner);
     }
@@ -450,7 +450,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
   if (byte_array == NULL)
     {
       printf ("couldn't allocate memory for byte array\n");
-      return -1;
+      return OATH_MALLOC_ERROR;
     }
 
   char *curr_ptr = byte_array;
@@ -476,14 +476,14 @@ oath_ocra_generate (const char *secret, size_t secret_length,
     {
       printf ("challenges are mandatory, but pointer = NULL!\n");
       free (byte_array);
-      return -1;
+      return OATH_SUITE_MISMATCH_ERROR;
     }
 
   if (challenges_length > 128)
     {
       printf ("challenges are not allowed to be longer than 128!\n");
       free (byte_array);
-      return -1;
+      return OATH_SUITE_MISMATCH_ERROR;
     }
 
   memcpy (curr_ptr, challenges, challenges_length);
@@ -500,7 +500,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
       printf
 	("suite specified password hash to be used, but pHash is NULL!\n");
       free (byte_array);
-      return -1;
+      return OATH_SUITE_MISMATCH_ERROR;
     }
 
   switch (ocra_suite_info.password_hash)
@@ -531,7 +531,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 	  printf
 	    ("suite specified session information to be used, but session is NULL!\n");
 	  free (byte_array);
-	  return -1;
+	  return OATH_SUITE_MISMATCH_ERROR;
 	}
       memcpy (curr_ptr, session, ocra_suite_info.session_length);
       curr_ptr += ocra_suite_info.session_length;
@@ -568,7 +568,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 	{
 	  printf ("couldn't allocate buffer for hash\n");
 	  free (byte_array);
-	  return -1;
+	  return OATH_MALLOC_ERROR;
 	}
       rc = gc_hmac_sha1 (secret, secret_length,
 			 byte_array, sizeof (byte_array), hs);
@@ -586,14 +586,14 @@ oath_ocra_generate (const char *secret, size_t secret_length,
     default:
       printf ("unsupported hash\n");
       free (byte_array);
-      return -1;
+      return OATH_SUITE_PARSE_ERROR;
     }
 
   free (byte_array);
   if (rc != 0)
     {
       printf ("hash calculation failed\n");
-      return -1;
+      return OATH_CRYPTO_ERROR;
     }
   long S;
   uint8_t offset = hs[hs_size - 1] & 0x0f;

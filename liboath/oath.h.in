@@ -91,6 +91,8 @@ extern "C"
  * @OATH_FILE_FLUSH_ERROR: System error when flushing file buffer
  * @OATH_FILE_SYNC_ERROR: System error when syncing file to disk
  * @OATH_FILE_CLOSE_ERROR: System error when closing file
+ * @OATH_SUITE_PARSE_ERROR: Error while parsing OCRA suite string
+ * @OATH_SUITE_MISMATCH_ERROR: Mismatch between OCRA suite parameters and data input
  * @OATH_LAST_ERROR: Meta-error indicating the last error code, for use
  *   when iterating over all error codes or similar.
  *
@@ -129,9 +131,11 @@ typedef enum
   OATH_FILE_FLUSH_ERROR = -23,
   OATH_FILE_SYNC_ERROR = -24,
   OATH_FILE_CLOSE_ERROR = -25,
+  OATH_SUITE_PARSE_ERROR = -26,
+  OATH_SUITE_MISMATCH_ERROR = -27,
   /* When adding anything here, update OATH_LAST_ERROR, errors.c
      and tests/tst_errors.c. */
-  OATH_LAST_ERROR = -25
+  OATH_LAST_ERROR = -27
 } oath_rc;
 
 /* Global */
