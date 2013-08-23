@@ -24,7 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>		//for tokenization
+#include <string.h>
 #include <ctype.h>
 #include <inttypes.h>
 #include "gc.h"
@@ -87,6 +87,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 {
   char *alg, *crypto, *datainput, *tmp;
   char *save_ptr_inner, *save_ptr_outer;
+  char *suite_tmp = NULL;
 
   ocra_suite_info->password_hash = OATH_OCRA_HASH_NONE;
   ocra_suite_info->ocra_hash = OATH_OCRA_HASH_NONE;
@@ -99,7 +100,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       return OATH_SUITE_PARSE_ERROR;
     }
 
-  char *suite_tmp = calloc (strlen (ocra_suite), sizeof (char));	//needed as working copy for strtok_r
+  suite_tmp = calloc (strlen (ocra_suite)+1, sizeof (char));
   if (suite_tmp == NULL)
     {
       printf ("couldn't allocate temp buffer for ocra_suite\n");
@@ -195,7 +196,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 
   datainput = strtok_r (NULL, ":", &save_ptr_outer);
 
-  free (suite_tmp);		//no longer needed
+  free (suite_tmp);
 
   if (datainput == NULL)
     {
@@ -203,7 +204,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       return OATH_SUITE_PARSE_ERROR;
     }
 
-  ocra_suite_info->datainput_length = ocra_suite_length + 1;	//in byte
+  ocra_suite_info->datainput_length = ocra_suite_length + 1;
 
   tmp = strtok_r (datainput, "-", &save_ptr_inner);
   if (tmp == NULL)
@@ -261,7 +262,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 	  return OATH_SUITE_PARSE_ERROR;
 	}
 
-      ocra_suite_info->datainput_length += 128;	//challenges need zero-padding anyway!
+      ocra_suite_info->datainput_length += 128;
       tmp = strtok_r (NULL, "-", &save_ptr_inner);
     }
   else
@@ -571,7 +572,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 	  return OATH_MALLOC_ERROR;
 	}
       rc = gc_hmac_sha1 (secret, secret_length,
-			 byte_array, sizeof (byte_array), hs);
+			 byte_array, ocra_suite_info.datainput_length, hs);
       break;
 
       /*   case SHA256:
@@ -650,8 +651,6 @@ oath_ocra_generate (const char *secret, size_t secret_length,
       return OATH_PRINTF_ERROR;
   }
 
-  //printf("OCRA: %s\n\n",output_ocra);
-
   return OATH_OK;
 }
 
@@ -685,7 +684,7 @@ oath_ocra_validate (const char *secret, size_t secret_length,
 {
 
   int rc;
-  char generated_ocra[11];	//max 10 digits
+  char generated_ocra[11];	/* max 10 digits */
 
   rc = oath_ocra_generate (secret, secret_length,
 			   ocra_suite, ocra_suite_length,
