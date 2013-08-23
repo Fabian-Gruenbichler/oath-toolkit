@@ -564,6 +564,12 @@ oath_ocra_generate (const char *secret, size_t secret_length,
     case OATH_OCRA_HASH_SHA1:
       hs_size = GC_SHA1_DIGEST_SIZE;
       hs = (char *) malloc (hs_size * sizeof (char));
+      if (hs == NULL)
+	{
+	  printf ("couldn't allocate buffer for hash\n");
+	  free (byte_array);
+	  return -1;
+	}
       rc = gc_hmac_sha1 (secret, secret_length,
 			 byte_array, sizeof (byte_array), hs);
       break;
@@ -584,7 +590,11 @@ oath_ocra_generate (const char *secret, size_t secret_length,
     }
 
   free (byte_array);
-
+  if (rc != 0)
+    {
+      printf ("hash calculation failed\n");
+      return -1;
+    }
   long S;
   uint8_t offset = hs[hs_size - 1] & 0x0f;
 
