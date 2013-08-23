@@ -333,7 +333,10 @@ update_usersfile2 (const char *username,
 
       type = strtok_r (*lineptr, whitespace, &saveptr);
       if (type == NULL)
-	continue;
+	{
+	  free (origline);
+	  continue;
+	}
 
       /* Read username */
       user = strtok_r (NULL, whitespace, &saveptr);
