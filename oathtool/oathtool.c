@@ -373,9 +373,10 @@ main (int argc, char *argv[])
 	{
 	  rc = oath_hex2bin (args_info.phash_arg, NULL, &bin_length);
 	  phash_bin = calloc (bin_length, sizeof (char));
-	  if (rc != OATH_OK || phash_bin == NULL)
+	  if (rc != OATH_TOO_SMALL_BUFFER || phash_bin == NULL)
 	    error (EXIT_FAILURE, 0,
-		   "could not convert phash string to byte-array");
+		   "could not convert phash string to byte-array (length: %d, rc: %d)",
+		   bin_length, rc);
 
 	  rc = oath_hex2bin (args_info.phash_arg, phash_bin, &bin_length);
 	  if (rc != OATH_OK)
@@ -388,7 +389,7 @@ main (int argc, char *argv[])
       bin_length = 0;
       rc = oath_hex2bin (args_info.challenges_arg, NULL, &bin_length);
       challenges_bin = calloc (bin_length, sizeof (char));
-      if (rc != OATH_OK || challenges_bin == NULL)
+      if (rc != OATH_TOO_SMALL_BUFFER || challenges_bin == NULL)
 	error (EXIT_FAILURE, 0,
 	       "could not convert challenges string to byte-array");
       rc =
