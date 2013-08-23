@@ -821,6 +821,7 @@ oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
 	if (challenges == NULL)
 	  {
 	    printf ("couldn't allocate challenge buffer\n");
+	    free (temp);
 	    return NULL;
 	  }
 	oath_hex2bin (temp, challenges, challenge_binary_length);
@@ -848,6 +849,7 @@ oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
 	if (challenges == NULL)
 	  {
 	    printf ("couldn't allocate challenge buffer\n");
+	    free (temp);
 	    return NULL;
 	  }
 
