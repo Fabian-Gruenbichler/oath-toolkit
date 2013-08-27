@@ -589,14 +589,31 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 			 byte_array, ocra_suite_info.datainput_length, hs);
       break;
 
-      /*   case SHA256:
-         hs_size = GC_SHA256_DIGEST_SIZE;
-         hs = (char *) malloc(hs_size*sizeof(char));
-         printf("Calculating SHA256, key: %s (length %d)\n",secret,secret_length);
-         rc = gc_hmac_sha256 (secret, secret_length,
-         byte_array, sizeof(byte_array), 
-         hs);
-         break; */
+    case OATH_OCRA_HASH_SHA256:
+      hs_size = GC_SHA256_DIGEST_SIZE;
+      hs = (char *) malloc (hs_size * sizeof (char));
+      if (hs == NULL)
+	{
+	  printf ("couldn't allocate buffer for hash\n");
+	  free (byte_array);
+	  return OATH_MALLOC_ERROR;
+	}
+      rc = gc_hmac_sha256 (secret, secret_length,
+			   byte_array, ocra_suite_info.datainput_length, hs);
+      break;
+
+    case OATH_OCRA_HASH_SHA512:
+      hs_size = GC_SHA512_DIGEST_SIZE;
+      hs = (char *) malloc (hs_size * sizeof (char));
+      if (hs == NULL)
+	{
+	  printf ("couldn't allocate buffer for hash\n");
+	  free (byte_array);
+	  return OATH_MALLOC_ERROR;
+	}
+      rc = gc_hmac_sha512 (secret, secret_length,
+			   byte_array, ocra_suite_info.datainput_length, hs);
+      break;
 
     default:
       printf ("unsupported hash\n");
