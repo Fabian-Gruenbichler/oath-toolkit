@@ -136,6 +136,7 @@ main (int argc, char *argv[])
   size_t bin_length;
   char *challenges_bin = NULL;
   char *phash_bin = NULL;
+  int totpflags = 0;
 
   set_program_name (argv[0]);
 
@@ -210,10 +211,10 @@ main (int argc, char *argv[])
     window = args_info.window_arg;
   else
     window = 0;
-  if (args_info.hotp_flag + args_info.totp_flag + args_info.ocra_flag > 1)
+  if (args_info.hotp_flag + args_info.totp_given + args_info.ocra_flag > 1)
     error (EXIT_FAILURE, 0,
 	   "more than one mode set! use either --hotp, --totp or --ocra");
-  if (args_info.totp_flag)
+  if (args_info.totp_given)
     mode = OATH_ALGO_TOTP;
   if (args_info.ocra_flag)
     mode = OATH_ALGO_OCRA;
@@ -278,6 +279,11 @@ main (int argc, char *argv[])
 	error (EXIT_FAILURE, 0, "cannot parse time `%s'",
 	       args_info.time_step_size_arg);
 
+      if (strcmp (args_info.totp_arg, "sha256") == 0)
+	totpflags = OATH_TOTP_HMAC_SHA256;
+      else if (strcmp (args_info.totp_arg, "sha512") == 0)
+	totpflags = OATH_TOTP_HMAC_SHA512;
+
       if (args_info.verbose_flag)
 	verbose_totp (t0, time_step_size, when);
       if (generate_otp_p (args_info.inputs_num))
@@ -286,10 +292,12 @@ main (int argc, char *argv[])
 
 	  do
 	    {
-	      rc = oath_totp_generate (secret,
-				       secretlen,
-				       when + iter * time_step_size,
-				       time_step_size, t0, digits, otp);
+	      rc = oath_totp_generate2 (secret,
+					secretlen,
+					when + iter * time_step_size,
+					time_step_size, t0, digits, totpflags,
+					otp);
+
 	      if (rc != OATH_OK)
 		error (EXIT_FAILURE, 0,
 		       "generating one-time password failed (%d)", rc);
@@ -300,11 +308,15 @@ main (int argc, char *argv[])
 	}
       else if (validate_otp_p (args_info.inputs_num))
 	{
-	  rc = oath_totp_validate (secret,
-				   secretlen,
-				   when,
-				   time_step_size,
-				   t0, window, args_info.inputs[1]);
+	  rc = oath_totp_validate4 (secret,
+				    secretlen,
+				    when,
+				    time_step_size,
+				    t0,
+				    window,
+				    NULL, NULL, totpflags,
+				    args_info.inputs[1]);
+
 	  if (rc == OATH_INVALID_OTP)
 	    error (EXIT_OTP_INVALID, 0,
 		   "password \"%s\" not found in range %ld .. %ld",
