@@ -29,9 +29,9 @@
 #include <inttypes.h>
 #include "gc.h"
 
-int strtouint (char *string, uint8_t * uint);
+static int strtouint (char *string, uint8_t * uint);
 
-int
+static int
 strtouint (char *string, uint8_t * uint)
 {
   if (*string == '\0')
@@ -47,9 +47,9 @@ strtouint (char *string, uint8_t * uint)
   return 0;
 }
 
-int strtouint_16 (char *string, uint16_t * uint);
+static int strtouint_16 (char *string, uint16_t * uint);
 
-int
+static int
 strtouint_16 (char *string, uint16_t * uint)
 {
   if (*string == '\0')
