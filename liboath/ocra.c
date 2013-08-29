@@ -425,7 +425,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
  * it contains information about which of the possible optional data inputs are
  * to be used, and how.
  *
- * Numeric challenges must be converted to base16 before passing as byte-array.
+ * Numeric challenges must be converted to base16 before being passed as byte-array.
  *
  * The output buffer @output_ocra must have room for at least as many digits as
  * specified as part of @ocra_suite, plus one terminating NUL char.
@@ -702,7 +702,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
  * Validates a given OCRA value by generating an OCRA value using the given
  * parameters and comparing the result.
  *
- * Returns: OATH_OK (zero) on successful validation, an error code otherwise.
+ * Returns: %OATH_OK (zero) on successful validation, an error code otherwise.
  * Since: 2.6.0
  **/
 int

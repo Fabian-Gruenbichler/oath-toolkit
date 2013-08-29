@@ -87,6 +87,20 @@ parse_type (const char *str, oath_alg_t * alg, unsigned *digits,
 static const char *whitespace = " \t\r\n";
 #define TIME_FORMAT_STRING "%Y-%m-%dT%H:%M:%SL"
 
+/**
+ * oath_retrieve_mode:
+ * @usersfile: path to the credential storage file
+ * @username: user for which mode shall be retrieved
+ * @algorithm: output parameter to store OATH algorithm
+ * @ocra_suite: output parameter to store OCRA suite, NULL for non-OCRA
+ * algorithms
+ *
+ * Used by the PAM module to retrieve the algorithm of the user that tries to
+ * login.
+ *
+ * Returns: %OATH_OK if @algorithm could be retrieved from @usersfile,
+ * %OATH_UNKNOWN_USER if @username was not found in @usersfile.
+ **/
 int
 oath_retrieve_mode (const char *usersfile,
 		    const char *username,
