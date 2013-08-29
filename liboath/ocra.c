@@ -83,7 +83,7 @@ strtouint_16 (char *string, uint16_t * uint)
 
 int
 oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
-		       ocra_suite_t * ocra_suite_info)
+		       oath_ocra_suite_t * ocra_suite_info)
 {
   char *alg, *crypto, *datainput, *tmp;
   char *save_ptr_inner, *save_ptr_outer;
@@ -444,7 +444,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 		    const char *session, time_t now, char *output_ocra)
 {
 
-  ocra_suite_t ocra_suite_info;
+  oath_ocra_suite_t ocra_suite_info;
   int rc;
   char *byte_array = NULL;
   char *curr_ptr = NULL;

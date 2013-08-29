@@ -198,7 +198,7 @@ pam_sm_authenticate (pam_handle_t * pamh,
       {
 	oath_alg_t algorithm = OATH_ALGO_NONE;
 	char ocra_suite[44];
-	ocra_suite_t ocra_suite_info;
+	oath_ocra_suite_t ocra_suite_info;
 	rc = oath_retrieve_mode (cfg.usersfile, user, &algorithm, ocra_suite);
 
 	if (rc != OATH_OK)

@@ -408,7 +408,7 @@ typedef enum
 } oath_ocra_challenge_t;
 
 /**
- * ocra_suite_t:
+ * oath_ocra_suite_t:
  * @use_counter: flag indicating whether a counter value is used as data input
  * @password_hash: defines which hash function is used for password hashes
  * (OATH_OCRA_HAS_NONE means no password hash is included as data input)
@@ -424,7 +424,7 @@ typedef enum
  *
  * All of these are set by %oath_ocra_parse_suite.
  **/
-typedef struct ocra_suite {
+typedef struct {
 		uint8_t use_counter;
 		oath_ocra_hash_t password_hash;
 		oath_ocra_hash_t ocra_hash;
@@ -434,12 +434,12 @@ typedef struct ocra_suite {
 		uint16_t session_length;
 		uint8_t digits;
 		size_t datainput_length;
-} ocra_suite_t;
+} oath_ocra_suite_t;
 
 extern OATHAPI int
 oath_ocra_parse_suite(const char *ocra_suite, 
             size_t ocra_suite_length,
-            ocra_suite_t *ocra_suite_info);
+            oath_ocra_suite_t *ocra_suite_info);
 
 extern OATHAPI int
 oath_ocra_generate(const char *secret, 
