@@ -72,11 +72,10 @@ parse_type (const char *str, oath_alg_t * alg, unsigned *digits,
     }
   else if (strncmp (str, "OCRA", 4) == 0)
     {
-      printf ("OCRA string: '%s', length %zu\n", str, strlen (str));
       *alg = OATH_ALGO_OCRA;
       if (strlen (str) > 43)
 	return -1;
-      strncpy (ocra_suite, str, strlen (str) + 1);
+      memcpy (ocra_suite, str, strlen (str) + 1);
     }
   else
     return -1;
