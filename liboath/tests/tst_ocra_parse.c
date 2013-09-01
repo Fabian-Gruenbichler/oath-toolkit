@@ -28,7 +28,7 @@
 const struct
 {
   char *ocra_suite;
-  ocra_suite_t exp;		//expected result
+  oath_ocra_suite_t exp;		//expected result
   int rc;
 } tv[] =
 {
@@ -72,7 +72,7 @@ main (void)
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
-      ocra_suite_t osi;
+      oath_ocra_suite_t osi;
       rc = oath_ocra_parse_suite (tv[i].ocra_suite,
 				  strlen (tv[i].ocra_suite), &osi);
 
