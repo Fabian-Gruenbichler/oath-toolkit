@@ -222,7 +222,7 @@ typedef int (*oath_validate_strcmp_function) (void *handle,
  *
  * See RFC 4226 for HOTP, RFC 6238 for TOTP and RFC 6287 for OCRA.
  **/
-typedef enum 
+typedef enum
 {
     OATH_ALGO_NONE,
     OATH_ALGO_HOTP,
@@ -400,7 +400,7 @@ typedef enum {
  * Flag set by oath_ocra_parse_suite, also used by %oath_ocra_generate_challenge
  * and %oath_ocra_convert_challenge.
  **/
-typedef enum 
+typedef enum
 {
     OATH_OCRA_CHALLENGE_HEX = 0,
     OATH_OCRA_CHALLENGE_ALPHA = 1,
@@ -437,43 +437,43 @@ typedef struct {
 } oath_ocra_suite_t;
 
 extern OATHAPI int
-oath_ocra_parse_suite(const char *ocra_suite, 
+oath_ocra_parse_suite(const char *ocra_suite,
             size_t ocra_suite_length,
             oath_ocra_suite_t *ocra_suite_info);
 
 extern OATHAPI int
-oath_ocra_generate(const char *secret, 
-			size_t secret_length, 
-			const char *ocra_suite, 
-			size_t ocra_suite_length, 
-			uint64_t counter, 
-			const char *challenges, 
-			size_t challenges_length, 
-			const char *password_hash, 
-			const char *session, 
-			time_t now, 
+oath_ocra_generate(const char *secret,
+			size_t secret_length,
+			const char *ocra_suite,
+			size_t ocra_suite_length,
+			uint64_t counter,
+			const char *challenges,
+			size_t challenges_length,
+			const char *password_hash,
+			const char *session,
+			time_t now,
 			char *output_ocra);
 
 extern OATHAPI int
-oath_ocra_validate(const char *secret, 
-			size_t secret_length, 
-			const char *ocra_suite, 
-			size_t ocra_suite_length, 
-			uint64_t counter, 
-			const char *challenges, 
-			size_t challenges_length, 
-			const char *password_hash, 
-			const char *session, 
-			time_t now, 
+oath_ocra_validate(const char *secret,
+			size_t secret_length,
+			const char *ocra_suite,
+			size_t ocra_suite_length,
+			uint64_t counter,
+			const char *challenges,
+			size_t challenges_length,
+			const char *password_hash,
+			const char *session,
+			time_t now,
 			const char *validate_ocra);
 
 extern OATHAPI void
-oath_ocra_generate_challenge(oath_ocra_challenge_t challenge_type, 
-                             size_t challenge_length, 
+oath_ocra_generate_challenge(oath_ocra_challenge_t challenge_type,
+                             size_t challenge_length,
                              char *challenge);
 extern OATHAPI char*
-oath_ocra_convert_challenge(oath_ocra_challenge_t challenge_type, 
-                            char *challenge_string, 
+oath_ocra_convert_challenge(oath_ocra_challenge_t challenge_type,
+                            char *challenge_string,
                             size_t *challenge_binary_length);
 
 /* Usersfile */

@@ -73,7 +73,7 @@ strtouint_16 (char *string, uint16_t * uint)
  * @ocra_suite_length: Length of string to be parsed.
  * @ocra_suite_info: Struct where parsed information is stored.
  *
- * Parses the string in @ocra_suite, storing the results in @ocra_suite_info. 
+ * Parses the string in @ocra_suite, storing the results in @ocra_suite_info.
  *
  * Returns: on success, %OATH_OK (zero) is returned, otherwise an error code is
  * returned.
@@ -419,7 +419,7 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
  * @output_ocra: Output buffer.
  *
  * Generate a truncated hash-value used for challenge-response-based
- * authentication according to the OCRA algorithm described in RFC 6287. 
+ * authentication according to the OCRA algorithm described in RFC 6287.
  * Besides the mandatory challenge(s), additional input is optional.
  *
  * The string @ocra_suite denotes which mode of OCRA is to be used. Furthermore
@@ -573,7 +573,7 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 
      printf("BYTE_ARRAY: %d\n",ocra_suite_info.datainput_length);
      printf(hexstring);
-     printf("\n"); 
+     printf("\n");
    */
 
   switch (ocra_suite_info.ocra_hash)
