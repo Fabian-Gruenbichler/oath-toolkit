@@ -28,7 +28,7 @@
 const struct
 {
   char *ocra_suite;
-  oath_ocra_suite_t exp;		//expected result
+  oath_ocra_suite_t exp;
   int rc;
 } tv[] =
 {
