@@ -373,10 +373,10 @@ oath_totp_validate4_callback (const char *secret,
 
 /**
  * oath_ocra_hash_t:
- * @OATH_OCRA_HASH_NONE: No hash function set
- * @OATH_OCRA_HASH_SHA1: Use SHA1 hash function
- * @OATH_OCRA_HASH_SHA256: Use SHA256 hash function 
- * @OATH_OCRA_HASH_SHA512: Use SHA512 hash function 
+ * @OATH_OCRA_HASH_NONE: No hash function set.
+ * @OATH_OCRA_HASH_SHA1: Use SHA1 hash function.
+ * @OATH_OCRA_HASH_SHA256: Use SHA256 hash function.
+ * @OATH_OCRA_HASH_SHA512: Use SHA512 hash function.
  *
  * Flags set by %oath_ocra_parse_suite.
  **/
@@ -389,16 +389,16 @@ typedef enum {
 
 /**
  * oath_ocra_challenge_t:
- * @OATH_OCRA_CHALLENGE_HEX: challenge string is in hex format
- * @OATH_OCRA_CHALLENGE_ALPHA: challenge string is alpha numeric
- * @OATH_OCRA_CHALLENGE_NUM: challenge string is numerical
+ * @OATH_OCRA_CHALLENGE_HEX: Challenge string is in hex format.
+ * @OATH_OCRA_CHALLENGE_ALPHA: Challenge string is alpha numeric.
+ * @OATH_OCRA_CHALLENGE_NUM: Challenge string is numerical.
  *
  * Numerical challenges must be converted to base 16 as a number before being
  * string-converted to binary. Hexadecimal challenges are simply converted to
  * binary, alpha numerical challenges must be left unchanged.
  *
  * Flag set by oath_ocra_parse_suite, also used by %oath_ocra_generate_challenge
- * and %oath_ocra_convert_challenge
+ * and %oath_ocra_convert_challenge.
  **/
 typedef enum 
 {
@@ -409,18 +409,18 @@ typedef enum
 
 /**
  * oath_ocra_suite_t:
- * @use_counter: flag indicating whether a counter value is used as data input
- * @password_hash: defines which hash function is used for password hashes
- * (OATH_OCRA_HAS_NONE means no password hash is included as data input)
- * @ocra_hash: defines which hash function is used to calculate the HMAC value
- * on which the OCRA value is based
- * @challenge_type: defines challenge type, see %oath_ocra_challenge_t
- * @challenge_length: defines length of one challenge string
- * @timestamp_div: divisor used to calculate timesteps passed since beginning of
- * epoch (0 means no timestamp included as data input)
- * @session_length: number of bytes of session information used as data input
- * @digits: number of digits HMAC is truncated to to get OCRA value
- * @datainput_length: total length of data input (in bytes)
+ * @use_counter: Flag indicating whether a counter value is used as data input.
+ * @password_hash: Defines which hash function is used for password hashes
+ * (OATH_OCRA_HAS_NONE means no password hash is included as data input).
+ * @ocra_hash: Defines which hash function is used to calculate the HMAC value
+ * on which the OCRA value is based.
+ * @challenge_type: Defines challenge type, see %oath_ocra_challenge_t.
+ * @challenge_length: Defines length of one challenge string.
+ * @timestamp_div: Divisor used to calculate timesteps passed since beginning of
+ * epoch (0 means no timestamp included as data input).
+ * @session_length: Number of bytes of session information used as data input.
+ * @digits: Length  of OCRA value (0 == no truncation, full HMAC length).
+ * @datainput_length: Total length of data input (in bytes).
  *
  * All of these are set by %oath_ocra_parse_suite.
  **/
@@ -449,7 +449,7 @@ oath_ocra_generate(const char *secret,
 			uint64_t counter, 
 			const char *challenges, 
 			size_t challenges_length, 
-			const char *pHash, 
+			const char *password_hash, 
 			const char *session, 
 			time_t now, 
 			char *output_ocra);
@@ -462,7 +462,7 @@ oath_ocra_validate(const char *secret,
 			uint64_t counter, 
 			const char *challenges, 
 			size_t challenges_length, 
-			const char *pHash, 
+			const char *password_hash, 
 			const char *session, 
 			time_t now, 
 			const char *validate_ocra);

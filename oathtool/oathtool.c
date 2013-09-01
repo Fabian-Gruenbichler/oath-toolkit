@@ -446,8 +446,7 @@ main (int argc, char *argv[])
 	  printf ("%d\n", rc);
 
 	}
-      if (phash_bin != NULL)
-	free (phash_bin);
+      free (phash_bin);
       free (challenges_bin);
       break;
 
