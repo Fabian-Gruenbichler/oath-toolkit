@@ -101,14 +101,15 @@ oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
       return OATH_SUITE_PARSE_ERROR;
     }
 
-  suite_tmp = calloc (strlen (ocra_suite) + 1, sizeof (char));
+  suite_tmp = calloc (ocra_suite_length + 1, sizeof (char));
   if (suite_tmp == NULL)
     {
       printf ("couldn't allocate temp buffer for ocra_suite\n");
       return OATH_MALLOC_ERROR;
     }
 
-  strncpy (suite_tmp, ocra_suite, strlen (ocra_suite) + 1);
+  memcpy (suite_tmp, ocra_suite, ocra_suite_length);
+  suite_tmp[ocra_suite_length] = '\0';
 
   alg = strtok_r (suite_tmp, ":", &save_ptr_outer);
   if (alg == NULL)
@@ -869,7 +870,8 @@ oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
 	      ("couldn't allocate temp buffer for challenge conversion\n");
 	    return NULL;
 	  }
-	strncpy (temp, challenge_string, challenge_length + 1);
+	memcpy (temp, challenge_string, challenge_length);
+	temp[challenge_length] = '\0';
 	if (challenge_length % 2 == 1)
 	  {
 	    temp[challenge_length] = '0';
@@ -899,7 +901,7 @@ oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
 	    return NULL;
 	  }
 
-	strncpy (challenges, challenge_string, *challenge_binary_length);
+	memcpy (challenges, challenge_string, *challenge_binary_length);
       }
       break;
 
