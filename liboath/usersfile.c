@@ -88,11 +88,11 @@ static const char *whitespace = " \t\r\n";
 
 /**
  * oath_retrieve_mode:
- * @usersfile: path to the credential storage file
- * @username: user for which mode shall be retrieved
- * @algorithm: output parameter to store OATH algorithm
- * @ocra_suite: output parameter to store OCRA suite, NULL for non-OCRA
- * algorithms
+ * @usersfile: Path to the credential storage file.
+ * @username: User for which mode shall be retrieved.
+ * @algorithm: Output parameter to store OATH algorithm.
+ * @ocra_suite: Output parameter to store OCRA suite, NULL for non-OCRA
+ * algorithms.
  *
  * Used by the PAM module to retrieve the algorithm of the user that tries to
  * login.
@@ -290,7 +290,6 @@ parse_usersfile (const char *username,
 	    oath_ocra_parse_suite (ocra_suite, strlen (ocra_suite),
 				   &ocra_suite_info);
 	  /* TODO: if phash != NONE, generate password hash from passwd */
-	  /* TODO: if session info, what is session info for pam use case? */
 	  rc = oath_ocra_validate (secret, secret_length,
 				   ocra_suite, strlen (ocra_suite),
 				   start_moving_factor,
@@ -501,12 +500,12 @@ update_usersfile (const char *usersfile,
 
 /**
  * oath_authenticate_usersfile:
- * @usersfile: string with user credential filename, in UsersFile format
- * @username: string with name of user
- * @otp: string with one-time password to authenticate
- * @window: how many past/future OTPs to search
- * @passwd: string with password, or NULL to disable password checking
- * @last_otp: output variable holding last successful authentication
+ * @usersfile: String with user credential filename, in UsersFile format.
+ * @username: String with name of user.
+ * @otp: String with one-time password to authenticate.
+ * @window: How many past/future OTPs to search.
+ * @passwd: String with password, or NULL to disable password checking.
+ * @last_otp: Output variable holding last successful authentication.
  *
  * Authenticate user named @username with the one-time password @otp
  * and (optional) password @passwd.  Credentials are read (and
@@ -541,14 +540,14 @@ oath_authenticate_usersfile (const char *usersfile,
 
 /**
  * oath_authenticate_usersfile2:
- * @usersfile: string with user credential filename, in UsersFile format
- * @username: string with name of user
- * @otp: string with one-time password to authenticate
- * @window: how many past/future OTPs to search
- * @passwd: string with password, or NULL to disable password checking
- * @challenges: byte-array storing challenges value (max 128byte)
- * @challenges_length: length of @challenges
- * @last_otp: output variable holding last successful authentication
+ * @usersfile: String with user credential filename, in UsersFile format.
+ * @username: String with name of user.
+ * @otp: String with one-time password to authenticate.
+ * @window: How many past/future OTPs to search.
+ * @passwd: String with password, or NULL to disable password checking.
+ * @challenges: Byte-array storing challenges value (max 128 bytes).
+ * @challenges_length: Length of @challenges.
+ * @last_otp: Output variable holding last successful authentication.
  *
  * Authenticate user named @username with the one-time password @otp
  * and (optional) password @passwd.  Credentials are read (and
