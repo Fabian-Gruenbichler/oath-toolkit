@@ -162,7 +162,6 @@ parse_usersfile (const char *username,
       uint64_t start_moving_factor = 0;
       int rc = 0;
       char *prev_otp = NULL;
-      oath_ocra_suite_t ocra_suite_info;
       char ocra_suite[44];
 
       if (p == NULL)
@@ -286,10 +285,6 @@ parse_usersfile (const char *username,
 	  break;
 
 	case OATH_ALGO_OCRA:
-	  rc =
-	    oath_ocra_parse_suite (ocra_suite, strlen (ocra_suite),
-				   &ocra_suite_info);
-	  /* TODO: if phash != NONE, generate password hash from passwd */
 	  rc = oath_ocra_validate (secret, secret_length,
 				   ocra_suite, strlen (ocra_suite),
 				   start_moving_factor,
