@@ -409,31 +409,36 @@ typedef enum
 
   /**
    * oath_ocra_suite_t:
-   * @use_counter: Flag indicating whether a counter value is used as data input.
-   * @password_hash: Defines which hash function is used for password hashes
-   * (OATH_OCRA_HAS_NONE means no password hash is included as data input).
-   * @ocra_hash: Defines which hash function is used to calculate the HMAC value
-   * on which the OCRA value is based.
+   * @ocra_hash: Defines which hash function is used to calculate the
+   *   HMAC value on which the OCRA value is based.
+   * @digits: Length of OCRA output code, 4-64 or 0 for no truncation,
+   *   full HMAC length.
+   * @use_counter: Flag indicating whether a counter value is used as
+   *   data input.
    * @challenge_type: Defines challenge type, see %oath_ocra_challenge_t.
    * @challenge_length: Defines length of one challenge string.
-   * @timestamp_div: Divisor used to calculate timesteps passed since beginning of
-   * epoch (0 means no timestamp included as data input).
-   * @session_length: Number of bytes of session information used as data input.
-   * @digits: Length  of OCRA value (0 == no truncation, full HMAC length).
-   * @datainput_length: Total length of data input (in bytes).
+   * @password_hash: Defines which hash function is used for password
+   * hashes, #OATH_OCRA_HAS_NONE means no password hash.
+   * @session_length: Number of bytes of session information used as
+   *   data input.
+   * @time_step_size: Divisor used to calculate timesteps passed since
+   *   beginning of epoch (0 means no timestamp included as data
+   *   input).
+   * @datainput_length: Total length of data input (in bytes), derived
+   *   from other parameters.
    *
-   * All of these are set by %oath_ocra_parse_suite.
+   * Fields populated by oath_ocra_parse_suite().
    **/
   typedef struct
   {
-    uint8_t use_counter;
-    oath_ocra_hash_t password_hash;
     oath_ocra_hash_t ocra_hash;
+    uint8_t digits;
+    uint8_t use_counter;
     oath_ocra_challenge_t challenge_type;
     uint8_t challenge_length;
-    uint16_t timestamp_div;
+    oath_ocra_hash_t password_hash;
     uint16_t session_length;
-    uint8_t digits;
+    uint32_t time_step_size;
     size_t datainput_length;
   } oath_ocra_suite_t;
 

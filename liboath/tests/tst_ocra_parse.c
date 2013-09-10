@@ -35,8 +35,8 @@ const struct
   {
     "OCRA-1:HOTP-SHA1-8:QN08",
     {
-  0, OATH_OCRA_HASH_NONE, OATH_OCRA_HASH_SHA1, OATH_OCRA_CHALLENGE_NUM, 8,
-	0, 0, 8, 152}, OATH_OK},
+      OATH_OCRA_HASH_SHA1, 8, 0, OATH_OCRA_CHALLENGE_NUM, 8,
+      OATH_OCRA_HASH_NONE, 0, 0, 152}, OATH_OK},
   {
     "OCRA-2:HOTP-SHA1-6:QN08",
     {
@@ -44,18 +44,23 @@ const struct
   {
     "OCRA-1:HOTP-SHA256-6:C-QA10",
     {
-  1, OATH_OCRA_HASH_NONE, OATH_OCRA_HASH_SHA256,
-	OATH_OCRA_CHALLENGE_ALPHA, 10, 0, 0, 6, 164}, OATH_OK},
+      OATH_OCRA_HASH_SHA256, 6, 1, OATH_OCRA_CHALLENGE_ALPHA, 10,
+      OATH_OCRA_HASH_NONE, 0, 0, 164}, OATH_OK},
   {
     "OCRA-1:HOTP-SHA512-2:C-QH24",
     {
-  1, OATH_OCRA_HASH_NONE, OATH_OCRA_HASH_SHA512, OATH_OCRA_CHALLENGE_HEX,
-	24, 0, 0, 2, 0}, OATH_SUITE_PARSE_ERROR},
+      OATH_OCRA_HASH_SHA512, 2, 1, OATH_OCRA_CHALLENGE_HEX, 24,
+      OATH_OCRA_HASH_NONE, 0, 0, 0}, OATH_SUITE_PARSE_ERROR},
   {
     "OCRA-1:HOTP-SHA1-0:C-QA20-PSHA512-S128-T12M",
     {
-  1, OATH_OCRA_HASH_SHA512, OATH_OCRA_HASH_SHA1,
-	OATH_OCRA_CHALLENGE_ALPHA, 20, 720, 128, 0, 380}, OATH_OK}
+      OATH_OCRA_HASH_SHA1, 0, 1, OATH_OCRA_CHALLENGE_ALPHA, 20,
+      OATH_OCRA_HASH_SHA512, 128, 720, 380}, OATH_OK},
+  {
+    "OCRA-1:HOTP-SHA256-10:QN64-PSHA512-S064-T12H",
+    {
+      OATH_OCRA_HASH_SHA256, 10, 0, OATH_OCRA_CHALLENGE_NUM, 64,
+      OATH_OCRA_HASH_SHA512, 64, 12*60*60, 309}, OATH_OK}
 };
 
 int
@@ -73,8 +78,8 @@ main (void)
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
       oath_ocra_suite_t osi;
-      rc = oath_ocra_suite_parse (tv[i].ocra_suite, &osi);
 
+      rc = oath_ocra_suite_parse (tv[i].ocra_suite, &osi);
       if (rc != tv[i].rc)
 	{
 	  printf ("rc mismatch for testcase #%d: %d vs %d\n", i, rc,
@@ -114,10 +119,10 @@ main (void)
 		 osi.challenge_length, tv[i].exp.challenge_length);
 	      return 1;
 	    }
-	  if (osi.timestamp_div != tv[i].exp.timestamp_div)
+	  if (osi.time_step_size != tv[i].exp.time_step_size)
 	    {
-	      printf ("timestamp_div mismatch for testcase #%d: %d vs %d\n",
-		      i, osi.timestamp_div, tv[i].exp.timestamp_div);
+	      printf ("time_step_size mismatch for testcase #%d: %d vs %d\n",
+		      i, osi.time_step_size, tv[i].exp.time_step_size);
 	      return 1;
 	    }
 	  if (osi.session_length != tv[i].exp.session_length)

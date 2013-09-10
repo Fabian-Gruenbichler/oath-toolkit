@@ -1,6 +1,7 @@
 /*
  * ocra.c - implementation of the OATH OCRA algorithm
  * Copyright (C) 2013 Fabian Grünbichler
+ * Copyright (C) 2013 Simon Josefsson
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -31,40 +32,36 @@
 
 #include "gc.h"
 
-static int strtouint (char *string, uint8_t * uint);
-
 static int
-strtouint (char *string, uint8_t * uint)
+map_hash (int h)
 {
-  if (*string == '\0')
-    return -1;
-  *uint = 0;
-  while ((*string - '0' < 10) && (*string - '0' >= 0))
+  switch (h)
     {
-      *uint = 10 * (*uint) + (unsigned) (*string - '0');
-      string++;
+    case 1:
+      return OATH_OCRA_HASH_SHA1;
+    case 256:
+      return OATH_OCRA_HASH_SHA256;
+    case 512:
+      return OATH_OCRA_HASH_SHA512;
+    default:
+      return -1;
     }
-  if (*string != '\0')
-    return -1;
-  return 0;
 }
 
-static int strtouint_16 (char *string, uint16_t * uint);
-
 static int
-strtouint_16 (char *string, uint16_t * uint)
+map_challtype (char c)
 {
-  if (*string == '\0')
-    return -1;
-  *uint = 0;
-  while ((*string - '0' < 10) && (*string - '0' >= 0))
+  switch (c)
     {
-      *uint = 10 * (*uint) + (unsigned) (*string - '0');
-      string++;
+    case 'A':
+      return OATH_OCRA_CHALLENGE_ALPHA;
+    case 'N':
+      return OATH_OCRA_CHALLENGE_NUM;
+    case 'H':
+      return OATH_OCRA_CHALLENGE_HEX;
+    default:
+      return -1;
     }
-  if (*string != '\0')
-    return -1;
-  return 0;
 }
 
 /**
@@ -72,8 +69,10 @@ strtouint_16 (char *string, uint16_t * uint)
  * @ocra_suite: String to be parsed.
  * @ocra_suite_info: Struct where parsed information is stored.
  *
- * Parses the zero-terminated string in @ocra_suite, storing the
- * results in @ocra_suite_info.
+ * Parses the zero-terminated string @ocra_suite, storing the results
+ * in @ocra_suite_info.  OCRA Suite strings are explained in RFC 6287,
+ * but two example strings would be "OCRA-1:HOTP-SHA1-4:QH8-S512" and
+ * "OCRA-1:HOTP-SHA512-8:C-QN08-PSHA1".
  *
  * Returns: On success, %OATH_OK (zero) is returned, otherwise an
  * error code is returned.
@@ -84,10 +83,9 @@ int
 oath_ocra_suite_parse (const char *ocra_suite,
 		       oath_ocra_suite_t * ocra_suite_info)
 {
-  char *alg, *crypto, *datainput, *tmp;
-  char *save_ptr_inner, *save_ptr_outer;
-  char *suite_tmp = NULL;
-  int h, n;
+  const char *tmp;
+  char f, Gunit;
+  unsigned h, n, xx, nnn, G, consumed;
 
   if (ocra_suite_info == NULL || ocra_suite == NULL)
     return OATH_SUITE_PARSE_ERROR;
@@ -95,244 +93,116 @@ oath_ocra_suite_parse (const char *ocra_suite,
   ocra_suite_info->password_hash = OATH_OCRA_HASH_NONE;
   ocra_suite_info->ocra_hash = OATH_OCRA_HASH_NONE;
   ocra_suite_info->use_counter = 0;
-  ocra_suite_info->timestamp_div = 0;
+  ocra_suite_info->time_step_size = 0;
   ocra_suite_info->session_length = 0;
+  ocra_suite_info->datainput_length = strlen (ocra_suite) + 1 + 128;
 
-  if (sscanf (ocra_suite, "OCRA-1:HOTP-SHA%d-%d:", &h, &n) != 2)
+  if (sscanf (ocra_suite, "OCRA-1:HOTP-SHA%u-%u:%n", &h, &n, &consumed) != 2)
     return OATH_SUITE_PARSE_ERROR;
 
-  if (h == 1)
-    ocra_suite_info->ocra_hash = OATH_OCRA_HASH_SHA1;
-  else if (h == 256)
-    ocra_suite_info->ocra_hash = OATH_OCRA_HASH_SHA256;
-  else if (h == 512)
-    ocra_suite_info->ocra_hash = OATH_OCRA_HASH_SHA512;
-  else
+  ocra_suite_info->ocra_hash = map_hash (h);
+  if ((int) ocra_suite_info->ocra_hash == -1)
     return OATH_SUITE_PARSE_ERROR;
 
   if (n != 0 && (n < 4 || n > 10))
     return OATH_SUITE_PARSE_ERROR;
   ocra_suite_info->digits = n;
 
-  /* Find start of DataInput */
-  if ((tmp = strchr (ocra_suite, ':')) == NULL)
-    return OATH_SUITE_PARSE_ERROR;
-  tmp++;
-  if ((tmp = strchr (tmp, ':')) == NULL)
-    return OATH_SUITE_PARSE_ERROR;
-  tmp++;
-
-  /* XXX: old code below */
-
-  suite_tmp = strdup (ocra_suite);
-  if (suite_tmp == NULL)
-    return OATH_MALLOC_ERROR;
-
-  alg = strtok_r (suite_tmp, ":", &save_ptr_outer);
-  if (alg == NULL)
-    {
-      free (suite_tmp);
-      return OATH_SUITE_PARSE_ERROR;
-    }
-
-  crypto = strtok_r (NULL, ":", &save_ptr_outer);
-  if (crypto == NULL)
-    {
-      free (suite_tmp);
-      return OATH_SUITE_PARSE_ERROR;
-    }
-
-  tmp = strtok_r (crypto, "-", &save_ptr_inner);
-  if (tmp == NULL)
-    {
-      free (suite_tmp);
-      return OATH_SUITE_PARSE_ERROR;
-    }
-
-  tmp = strtok_r (NULL, "-", &save_ptr_inner);
-  if (tmp == NULL)
-    {
-      free (suite_tmp);
-      return OATH_SUITE_PARSE_ERROR;
-    }
-
-  tmp = strtok_r (NULL, "-", &save_ptr_inner);
-  if (tmp == NULL)
-    {
-      free (suite_tmp);
-      return OATH_SUITE_PARSE_ERROR;
-    }
-
-  datainput = strtok_r (NULL, ":", &save_ptr_outer);
-  free (suite_tmp);
-
-  if (datainput == NULL)
-    {
-      return OATH_SUITE_PARSE_ERROR;
-    }
-
-  ocra_suite_info->datainput_length = strlen (ocra_suite) + 1;
-
-  tmp = strtok_r (datainput, "-", &save_ptr_inner);
-  if (tmp == NULL)
-    {
-      return OATH_SUITE_PARSE_ERROR;
-    }
-  if (tolower (tmp[0]) == 'c' && tmp[1] == '\0')
+  tmp = ocra_suite + consumed;
+  if (strncmp (tmp, "C-", 2) == 0)
     {
       ocra_suite_info->datainput_length += 8;
       ocra_suite_info->use_counter = 1;
-      tmp = strtok_r (NULL, "-", &save_ptr_inner);
+      tmp += 2;
     }
 
-  if (tmp == NULL)
+  if (sscanf (tmp, "Q%c%02u-PSHA%u-S%03u-T%u%[HMS]%n",
+	      &f, &xx, &h, &nnn, &G, &Gunit, &consumed) == 6)
     {
-      return OATH_SUITE_PARSE_ERROR;
     }
-  if (tolower (tmp[0]) == 'q')
+  else if (sscanf (tmp, "Q%c%02u-PSHA%u%n", &f, &xx, &h, &consumed) == 3)
     {
-      tmp++;
-      switch (tolower (tmp[0]))
-	{
-	case 'a':
-	  ocra_suite_info->challenge_type = OATH_OCRA_CHALLENGE_ALPHA;
-	  break;
-	case 'n':
-	  ocra_suite_info->challenge_type = OATH_OCRA_CHALLENGE_NUM;
-	  break;
-	case 'h':
-	  ocra_suite_info->challenge_type = OATH_OCRA_CHALLENGE_HEX;
-	  break;
-	default:
-	  return OATH_SUITE_PARSE_ERROR;
-	}
-      tmp++;
-      if (strtouint (tmp, &(ocra_suite_info->challenge_length)) != 0)
-	{
-	  return OATH_SUITE_PARSE_ERROR;
-	}
-      if (ocra_suite_info->challenge_length < 4
-	  || ocra_suite_info->challenge_length > 64)
-	{
-	  return OATH_SUITE_PARSE_ERROR;
-	}
-      if (tmp[2] != '\0')
-	{
-	  return OATH_SUITE_PARSE_ERROR;
-	}
-
-      ocra_suite_info->datainput_length += 128;
-      tmp = strtok_r (NULL, "-", &save_ptr_inner);
+      G = 0;
+      nnn = 0;
+    }
+  else if (sscanf (tmp, "Q%c%02u-T%02u%[HMS]%n",
+		   &f, &xx, &G, &Gunit, &consumed) == 4)
+    {
+      h = 0;
+      nnn = 0;
+    }
+  else if (sscanf (tmp, "Q%c%02u%n", &f, &xx, &consumed) == 2)
+    {
+      G = 0;
+      h = 0;
+      nnn = 0;
     }
   else
+    return OATH_SUITE_PARSE_ERROR;
+
+  if (tmp[consumed] != '\0')
+    return OATH_SUITE_PARSE_ERROR;
+
+  ocra_suite_info->challenge_type = map_challtype (f);
+  if ((int) ocra_suite_info->challenge_type == -1)
+    return OATH_SUITE_PARSE_ERROR;
+
+  if (xx < 4 || xx > 64)
+    return OATH_SUITE_PARSE_ERROR;
+  ocra_suite_info->challenge_length = xx;
+
+  if (nnn > 512)
+    return OATH_SUITE_PARSE_ERROR;
+  ocra_suite_info->session_length = nnn;
+  ocra_suite_info->datainput_length += nnn;
+
+  if (h)
     {
-      return OATH_SUITE_PARSE_ERROR;
+      ocra_suite_info->password_hash = map_hash (h);
+      switch (ocra_suite_info->password_hash)
+	{
+	case OATH_OCRA_HASH_SHA1:
+	  ocra_suite_info->datainput_length += 20;
+	  break;
+	case OATH_OCRA_HASH_SHA256:
+	  ocra_suite_info->datainput_length += 32;
+	  break;
+	case OATH_OCRA_HASH_SHA512:
+	  ocra_suite_info->datainput_length += 64;
+	  break;
+	default:
+	  return OATH_SUITE_PARSE_ERROR;
+	}
     }
 
-  while (tmp != NULL)
+  if (G)
     {
-      switch (tolower (tmp[0]))
+      ocra_suite_info->time_step_size = G;
+      switch (Gunit)
 	{
-	case 'p':
-	  if (ocra_suite_info->password_hash != OATH_OCRA_HASH_NONE)
-	    {
-	      return OATH_SUITE_PARSE_ERROR;
-	    }
-	  tmp++;
-	  if (strcasecmp (tmp, "SHA1") == 0)
-	    {
-	      ocra_suite_info->password_hash = OATH_OCRA_HASH_SHA1;
-	      ocra_suite_info->datainput_length += 20;
-	    }
-	  else if (strcasecmp (tmp, "SHA256") == 0)
-	    {
-	      ocra_suite_info->password_hash = OATH_OCRA_HASH_SHA256;
-	      ocra_suite_info->datainput_length += 32;
-	    }
-	  else if (strcasecmp (tmp, "SHA512") == 0)
-	    {
-	      ocra_suite_info->password_hash = OATH_OCRA_HASH_SHA512;
-	      ocra_suite_info->datainput_length += 64;
-	    }
-	  else
-	    {
-	      return OATH_SUITE_PARSE_ERROR;
-	    }
+	case 'S':
+	  if (G == 0 || G > 59)
+	    return OATH_SUITE_PARSE_ERROR;
 	  break;
 
-	case 's':
-	  if (ocra_suite_info->session_length > 0)
-	    {
-	      return OATH_SUITE_PARSE_ERROR;
-	    }
-	  tmp++;
-	  if (strtouint_16 (tmp, &(ocra_suite_info->session_length)) != 0)
-	    {
-	      return OATH_SUITE_PARSE_ERROR;
-	    }
-	  if (ocra_suite_info->session_length > 512)
-	    {
-	      return OATH_SUITE_PARSE_ERROR;
-	    }
-	  if (tmp[3] != '\0')
-	    {
-	      return OATH_SUITE_PARSE_ERROR;
-	    }
-	  ocra_suite_info->datainput_length +=
-	    ocra_suite_info->session_length;
+	case 'M':
+	  if (G == 0 || G > 59)
+	    return OATH_SUITE_PARSE_ERROR;
+	  ocra_suite_info->time_step_size *= 60;
 	  break;
 
-	case 't':
-	  if (ocra_suite_info->timestamp_div != 0)
-	    {
-	      return OATH_SUITE_PARSE_ERROR;
-	    }
-	  tmp++;
-	  for (ocra_suite_info->timestamp_div = 0;
-	       (*tmp - '0' < 10) && (*tmp - '0' >= 0); tmp++)
-	    ocra_suite_info->timestamp_div =
-	      10 * ocra_suite_info->timestamp_div + (*tmp - '0');
-	  switch (tolower (tmp[0]))
-	    {
-	    case 's':
-	      if (ocra_suite_info->timestamp_div > 59
-		  || ocra_suite_info->timestamp_div == 0)
-		{
-		  return OATH_SUITE_PARSE_ERROR;
-		}
-	      break;
-
-	    case 'm':
-	      if (ocra_suite_info->timestamp_div > 59
-		  || ocra_suite_info->timestamp_div == 0)
-		{
-		  return OATH_SUITE_PARSE_ERROR;
-		}
-	      ocra_suite_info->timestamp_div *= 60;
-	      break;
-
-	    case 'h':
-	      if (ocra_suite_info->timestamp_div > 48)
-		{
-		  return OATH_SUITE_PARSE_ERROR;
-		}
-	      ocra_suite_info->timestamp_div *= 3600;
-	      break;
-
-	    default:
-	      return OATH_SUITE_PARSE_ERROR;
-	    }
-	  if (tmp[1] != '\0')
-	    {
-	      return OATH_SUITE_PARSE_ERROR;
-	    }
-	  ocra_suite_info->datainput_length += 8;
+	case 'H':
+	  /* RFC 6287 says H=00 is permitted but that is nonsensical. */
+	  if (G == 0 || G > 48)
+	    return OATH_SUITE_PARSE_ERROR;
+	  ocra_suite_info->time_step_size *= 60 * 60;
 	  break;
 
 	default:
 	  return OATH_SUITE_PARSE_ERROR;
 	}
-      tmp = strtok_r (NULL, "-", &save_ptr_inner);
+
+      ocra_suite_info->datainput_length += 8;
     }
 
   return OATH_OK;
@@ -671,9 +541,9 @@ oath_ocra_generate_internal (const char *secret,
       curr_ptr += parsed_suite.session_length;
     }
 
-  if (parsed_suite.timestamp_div != 0)
+  if (parsed_suite.time_step_size != 0)
     {
-      time_steps = now / parsed_suite.timestamp_div;
+      time_steps = now / parsed_suite.time_step_size;
       tmp_len = 8;
       sprintf (tmp_str, "%016" PRIX64, time_steps);
       oath_hex2bin (tmp_str, curr_ptr, &tmp_len);
