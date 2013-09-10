@@ -144,8 +144,7 @@ parse_usersfile (const char *username,
 		 time_t * last_otp,
 		 FILE * infh,
 		 char **lineptr, size_t * n, uint64_t * new_moving_factor,
-		 size_t * skipped_users,
-		 const char *challenges, size_t challenges_length)
+		 size_t * skipped_users, const char *challenge)
 {
   int bad_password = 0;
 
@@ -285,11 +284,10 @@ parse_usersfile (const char *username,
 	  break;
 
 	case OATH_ALGO_OCRA:
-	  rc = oath_ocra_validate (secret, secret_length,
-				   ocra_suite, strlen (ocra_suite),
-				   start_moving_factor,
-				   challenges, challenges_length,
-				   NULL, NULL, time (NULL), otp);
+	  rc = oath_ocra_validate3 (secret, secret_length,
+				    ocra_suite, strlen (ocra_suite),
+				    start_moving_factor,
+				    challenge, NULL, NULL, time (NULL), otp);
 	  if (rc == OATH_OK)
 	    rc = 1;
 	default:
@@ -528,8 +526,7 @@ oath_authenticate_usersfile (const char *usersfile,
 {
   return oath_authenticate_usersfile2 (usersfile,
 				       username,
-				       otp,
-				       window, passwd, NULL, 0, last_otp);
+				       otp, window, passwd, NULL, last_otp);
 }
 
 
@@ -567,8 +564,7 @@ oath_authenticate_usersfile2 (const char *usersfile,
 			      const char *otp,
 			      size_t window,
 			      const char *passwd,
-			      const char *challenges,
-			      size_t challenges_length, time_t * last_otp)
+			      const char *challenge, time_t * last_otp)
 {
   FILE *infh;
   char *line = NULL;
@@ -583,7 +579,7 @@ oath_authenticate_usersfile2 (const char *usersfile,
 
   rc = parse_usersfile (username, otp, window, passwd, last_otp,
 			infh, &line, &n, &new_moving_factor, &skipped_users,
-			challenges, challenges_length);
+			challenge);
 
   if (rc == OATH_OK)
     {

@@ -136,8 +136,7 @@ pam_sm_authenticate (pam_handle_t * pamh,
   int retval, rc;
   const char *user = NULL;
   const char *password = NULL;
-  char *challenges = NULL;
-  size_t challenges_length = 0;
+  char challenge_string[65];
   char otp[MAX_OTP_LEN + 1];
   int password_len = 0;
   struct pam_conv *conv;
@@ -198,7 +197,6 @@ pam_sm_authenticate (pam_handle_t * pamh,
       {
 	oath_alg_t algorithm = OATH_ALGO_NONE;
 	char ocra_suite[44];
-	oath_ocra_suite_t ocra_suite_info;
 	rc = oath_retrieve_mode (cfg.usersfile, user, &algorithm, ocra_suite);
 
 	if (rc != OATH_OK)
@@ -211,26 +209,16 @@ pam_sm_authenticate (pam_handle_t * pamh,
 
 	if (algorithm == OATH_ALGO_OCRA)
 	  {
-	    rc =
-	      oath_ocra_parse_suite (ocra_suite, strlen (ocra_suite),
-				     &ocra_suite_info);
+	    rc = oath_ocra_generate_challenge (ocra_suite,
+					       strlen (ocra_suite),
+					       challenge_string);
+
 	    if (rc != OATH_OK)
 	      {
-		DBG (("Malformed OCRA suite for user '%s'", user));
+		DBG (("Generating challenge for user '%s' failed", user));
 		retval = PAM_AUTH_ERR;
 		goto done;
 	      }
-	    char challenge_string[ocra_suite_info.challenge_length + 1];
-	    oath_ocra_generate_challenge (ocra_suite_info.challenge_type,
-					  ocra_suite_info.challenge_length,
-					  challenge_string);
-
-	    size_t challenges_length = 0;
-	    challenges =
-	      oath_ocra_convert_challenge (ocra_suite_info.challenge_type,
-					   challenge_string,
-					   &challenges_length);
-
 
 	    const char *query_template =
 	      "One-time password (OCRA) for `%s' - challenge is \"%s\": ";
@@ -361,8 +349,7 @@ pam_sm_authenticate (pam_handle_t * pamh,
     rc = oath_authenticate_usersfile2 (cfg.usersfile,
 				       user,
 				       otp, cfg.window, onlypasswd,
-				       challenges, challenges_length,
-				       &last_otp);
+				       challenge_string, &last_otp);
     DBG (("authenticate rc %d (%s: %s) last otp %s", rc,
 	  oath_strerror_name (rc) ? oath_strerror_name (rc) : "UNKNOWN",
 	  oath_strerror (rc), ctime (&last_otp)));
@@ -381,7 +368,6 @@ done:
   oath_done ();
   free (query_prompt);
   free (onlypasswd);
-  free (challenges);
   if (cfg.alwaysok && retval != PAM_SUCCESS)
     {
       DBG (("alwaysok needed (otherwise return with %d)", retval));
