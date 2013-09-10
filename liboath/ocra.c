@@ -124,18 +124,40 @@ oath_ocra_parse_suite (const char *ocra_suite,
   ocra_suite_info->timestamp_div = 0;
   ocra_suite_info->session_length = 0;
 
+  if (sscanf (ocra_suite, "OCRA-1:HOTP-SHA%d-%d:",
+	      &ocra_suite_info->ocra_hash,
+	      &ocra_suite_info->digits) != 2)
+    return OATH_SUITE_PARSE_ERROR;
+
+  if (ocra_suite_info->ocra_hash == 1)
+    ocra_suite_info->ocra_hash = OATH_OCRA_HASH_SHA1;
+  else if (ocra_suite_info->ocra_hash == 256)
+    ocra_suite_info->ocra_hash = OATH_OCRA_HASH_SHA256;
+  else if (ocra_suite_info->ocra_hash == 512)
+    ocra_suite_info->ocra_hash = OATH_OCRA_HASH_SHA512;
+  else
+    return OATH_SUITE_PARSE_ERROR;
+
+  if (ocra_suite_info->digits != 0 &&
+      ((ocra_suite_info->digits) < 4 || (ocra_suite_info->digits) > 10))
+    return OATH_SUITE_PARSE_ERROR;
+
+  /* Find start of DataInput */
+  if ((tmp = strchr (ocra_suite, ':')) == NULL)
+    return OATH_SUITE_PARSE_ERROR;
+  tmp++;
+  if ((tmp = strchr (tmp, ':')) == NULL)
+    return OATH_SUITE_PARSE_ERROR;
+  tmp++;
+
+  /* XXX: old code below */
+
   suite_tmp = strdup (ocra_suite);
   if (suite_tmp == NULL)
     return OATH_MALLOC_ERROR;
 
   alg = strtok_r (suite_tmp, ":", &save_ptr_outer);
   if (alg == NULL)
-    {
-      free (suite_tmp);
-      return OATH_SUITE_PARSE_ERROR;
-    }
-
-  if (strcasecmp (alg, "OCRA-1") != 0)
     {
       free (suite_tmp);
       return OATH_SUITE_PARSE_ERROR;
@@ -155,12 +177,6 @@ oath_ocra_parse_suite (const char *ocra_suite,
       return OATH_SUITE_PARSE_ERROR;
     }
 
-  if (strcasecmp (tmp, "HOTP") != 0)
-    {
-      free (suite_tmp);
-      return OATH_SUITE_PARSE_ERROR;
-    }
-
   tmp = strtok_r (NULL, "-", &save_ptr_inner);
   if (tmp == NULL)
     {
@@ -168,38 +184,8 @@ oath_ocra_parse_suite (const char *ocra_suite,
       return OATH_SUITE_PARSE_ERROR;
     }
 
-  if (strcasecmp (tmp, "SHA1") == 0)
-    {
-      ocra_suite_info->ocra_hash = OATH_OCRA_HASH_SHA1;
-    }
-  else if (strcasecmp (tmp, "SHA256") == 0)
-    {
-      ocra_suite_info->ocra_hash = OATH_OCRA_HASH_SHA256;
-    }
-  else if (strcasecmp (tmp, "SHA512") == 0)
-    {
-      ocra_suite_info->ocra_hash = OATH_OCRA_HASH_SHA512;
-    }
-  else
-    {
-      free (suite_tmp);
-      return OATH_SUITE_PARSE_ERROR;
-    }
-
   tmp = strtok_r (NULL, "-", &save_ptr_inner);
   if (tmp == NULL)
-    {
-      free (suite_tmp);
-      return OATH_SUITE_PARSE_ERROR;
-    }
-
-  if (strtouint (tmp, &(ocra_suite_info->digits)) != 0)
-    {
-      free (suite_tmp);
-      return OATH_SUITE_PARSE_ERROR;
-    }
-  if (ocra_suite_info->digits != 0 &&
-      ((ocra_suite_info->digits) < 4 || (ocra_suite_info->digits) > 10))
     {
       free (suite_tmp);
       return OATH_SUITE_PARSE_ERROR;
