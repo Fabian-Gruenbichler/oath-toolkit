@@ -452,7 +452,6 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 
   rc = oath_ocra_parse_suite (ocra_suite, ocra_suite_length,
 			      &ocra_suite_info);
-
   if (rc != OATH_OK)
     return rc;
 
@@ -647,7 +646,7 @@ oath_ocra_generate_internal (const char *secret,
   char *byte_array = NULL;
   char *curr_ptr = NULL;
   uint64_t time_steps = 0;
-  char tmp_str[16];
+  char tmp_str[17];
   size_t tmp_len;
   char *hs;
   size_t hs_size;
