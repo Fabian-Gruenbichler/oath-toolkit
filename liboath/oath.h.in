@@ -407,40 +407,6 @@ typedef enum
     OATH_OCRA_CHALLENGE_NUM = 2
 } oath_ocra_challenge_t;
 
-/**
- * oath_ocra_suite_t:
- * @use_counter: Flag indicating whether a counter value is used as data input.
- * @password_hash: Defines which hash function is used for password hashes
- * (OATH_OCRA_HAS_NONE means no password hash is included as data input).
- * @ocra_hash: Defines which hash function is used to calculate the HMAC value
- * on which the OCRA value is based.
- * @challenge_type: Defines challenge type, see %oath_ocra_challenge_t.
- * @challenge_length: Defines length of one challenge string.
- * @timestamp_div: Divisor used to calculate timesteps passed since beginning of
- * epoch (0 means no timestamp included as data input).
- * @session_length: Number of bytes of session information used as data input.
- * @digits: Length  of OCRA value (0 == no truncation, full HMAC length).
- * @datainput_length: Total length of data input (in bytes).
- *
- * All of these are set by %oath_ocra_parse_suite.
- **/
-typedef struct {
-		uint8_t use_counter;
-		oath_ocra_hash_t password_hash;
-		oath_ocra_hash_t ocra_hash;
-		oath_ocra_challenge_t challenge_type;
-		uint8_t challenge_length;
-		uint16_t timestamp_div;
-		uint16_t session_length;
-		uint8_t digits;
-		size_t datainput_length;
-} oath_ocra_suite_t;
-
-extern OATHAPI int
-oath_ocra_parse_suite(const char *ocra_suite,
-            size_t ocra_suite_length,
-            oath_ocra_suite_t *ocra_suite_info);
-
 extern OATHAPI int
 oath_ocra_generate(const char *secret,
 			size_t secret_length,
@@ -467,14 +433,8 @@ oath_ocra_validate(const char *secret,
 			time_t now,
 			const char *validate_ocra);
 
-extern OATHAPI void
-oath_ocra_generate_challenge(oath_ocra_challenge_t challenge_type,
-                             size_t challenge_length,
-                             char *challenge);
-extern OATHAPI char*
-oath_ocra_convert_challenge(oath_ocra_challenge_t challenge_type,
-                            const char *challenge_string,
-                            size_t *challenge_binary_length);
+extern OATHAPI int
+oath_ocra_generate_challenge(const char *ocra_suite, size_t ocra_suite_length, char *challenge);
 
 /* Usersfile */
 
@@ -492,8 +452,7 @@ oath_authenticate_usersfile2 (const char *usersfile,
 			     const char *otp,
 			     size_t window,
 			     const char *passwd,
-			     const char *challenges,
-			     size_t challenges_length,
+			     const char *challenge,
 			     time_t * last_otp);
 
 extern OATHAPI int

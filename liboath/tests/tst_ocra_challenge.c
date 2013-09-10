@@ -30,33 +30,34 @@
 const struct
 {
   oath_ocra_challenge_t type;
+  const char *ocra_suite;
   size_t length;
 } tv[] =
 {
   {
-  OATH_OCRA_CHALLENGE_HEX, 8},
+  OATH_OCRA_CHALLENGE_HEX, "OCRA-1:HOTP-SHA256-8:QH08", 8},
   {
-  OATH_OCRA_CHALLENGE_NUM, 5},
+  OATH_OCRA_CHALLENGE_NUM, "OCRA-1:HOTP-SHA256-8:QN05", 5},
   {
-  OATH_OCRA_CHALLENGE_ALPHA, 10},
+  OATH_OCRA_CHALLENGE_ALPHA, "OCRA-1:HOTP-SHA256-8:QA10", 10},
   {
-  OATH_OCRA_CHALLENGE_HEX, 24},
+  OATH_OCRA_CHALLENGE_HEX, "OCRA-1:HOTP-SHA256-8:QH24", 24},
   {
-  OATH_OCRA_CHALLENGE_HEX, 5},
+  OATH_OCRA_CHALLENGE_HEX, "OCRA-1:HOTP-SHA256-8:QH05", 5},
   {
-  OATH_OCRA_CHALLENGE_HEX, 64},
+  OATH_OCRA_CHALLENGE_HEX, "OCRA-1:HOTP-SHA256-8:QH64", 64},
   {
-  OATH_OCRA_CHALLENGE_NUM, 2},
+  OATH_OCRA_CHALLENGE_NUM, "OCRA-1:HOTP-SHA256-8:QN04", 4},
   {
-  OATH_OCRA_CHALLENGE_NUM, 23},
+  OATH_OCRA_CHALLENGE_NUM, "OCRA-1:HOTP-SHA256-8:QN23", 23},
   {
-  OATH_OCRA_CHALLENGE_NUM, 64},
+  OATH_OCRA_CHALLENGE_NUM, "OCRA-1:HOTP-SHA256-8:QN64", 64},
   {
-  OATH_OCRA_CHALLENGE_ALPHA, 2},
+  OATH_OCRA_CHALLENGE_ALPHA, "OCRA-1:HOTP-SHA256-8:QA04", 4},
   {
-  OATH_OCRA_CHALLENGE_ALPHA, 15},
+  OATH_OCRA_CHALLENGE_ALPHA, "OCRA-1:HOTP-SHA256-8:QA15", 15},
   {
-  OATH_OCRA_CHALLENGE_ALPHA, 64}
+  OATH_OCRA_CHALLENGE_ALPHA, "OCRA-1:HOTP-SHA256-8:QA64", 64}
 };
 
 int
@@ -68,7 +69,8 @@ main (void)
       char challenge[tv[i].length + 1];
       char *tmp = challenge;
       int j;
-      oath_ocra_generate_challenge (tv[i].type, tv[i].length, challenge);
+      oath_ocra_generate_challenge (tv[i].ocra_suite,
+				    strlen (tv[i].ocra_suite), challenge);
 
       printf ("Challenge #%d, length %d:\n", i, tv[i].length);
       printf (challenge);

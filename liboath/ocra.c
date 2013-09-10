@@ -29,6 +29,41 @@
 #include <inttypes.h>
 #include "gc.h"
 
+/**
+ * oath_ocra_suite_t:
+ * @use_counter: Flag indicating whether a counter value is used as data input.
+ * @password_hash: Defines which hash function is used for password hashes
+ * (OATH_OCRA_HAS_NONE means no password hash is included as data input).
+ * @ocra_hash: Defines which hash function is used to calculate the HMAC value
+ * on which the OCRA value is based.
+ * @challenge_type: Defines challenge type, see %oath_ocra_challenge_t.
+ * @challenge_length: Defines length of one challenge string.
+ * @timestamp_div: Divisor used to calculate timesteps passed since beginning of
+ * epoch (0 means no timestamp included as data input).
+ * @session_length: Number of bytes of session information used as data input.
+ * @digits: Length  of OCRA value (0 == no truncation, full HMAC length).
+ * @datainput_length: Total length of data input (in bytes).
+ *
+ * All of these are set by %oath_ocra_parse_suite.
+ **/
+typedef struct
+{
+  uint8_t use_counter;
+  oath_ocra_hash_t password_hash;
+  oath_ocra_hash_t ocra_hash;
+  oath_ocra_challenge_t challenge_type;
+  uint8_t challenge_length;
+  uint16_t timestamp_div;
+  uint16_t session_length;
+  uint8_t digits;
+  size_t datainput_length;
+} oath_ocra_suite_t;
+
+char *oath_ocra_convert_challenge (oath_ocra_challenge_t
+				   challenge_type,
+				   const char *challenge_string,
+				   size_t * challenge_binary_length);
+
 static int strtouint (char *string, uint8_t * uint);
 
 static int
@@ -946,9 +981,10 @@ oath_ocra_validate3 (const char *secret, size_t secret_length,
 }
 
 void
-oath_ocra_generate_challenge (oath_ocra_challenge_t
-			      challenge_type,
-			      size_t challenge_length, char *challenge)
+oath_ocra_generate_challenge_internal (oath_ocra_challenge_t
+				       challenge_type,
+				       size_t challenge_length,
+				       char *challenge)
 {
   long int random_number;
   char *tmp = challenge;
@@ -1001,6 +1037,39 @@ oath_ocra_generate_challenge (oath_ocra_challenge_t
     default:
       break;
     }
+}
+
+/**
+ * oath_ocra_generate_challenge:
+ * @ocra_suite: String containing challenge specification and other OCRA
+ * parameters.
+ * @ocra_suite_length: Length of @ocra_suite.
+ * @challenge: Output buffer, needs space for 65 chars.
+ *
+ * Generates a (pseudo)random challenge string depending on the type and length
+ * given by @ocra_suite.
+ *
+ * Returns: %OATH_OK (zero) on success, an error code otherwise.
+ *
+ * Since: 2.6.0
+ **/
+int
+oath_ocra_generate_challenge (const char *ocra_suite,
+			      size_t ocra_suite_length, char *challenge)
+{
+  int rc;
+  oath_ocra_suite_t parsed_suite;
+
+  rc = oath_ocra_parse_suite (ocra_suite, ocra_suite_length, &parsed_suite);
+
+  if (rc != OATH_OK)
+    return rc;
+
+  oath_ocra_generate_challenge_internal (parsed_suite.challenge_type,
+					 parsed_suite.challenge_length,
+					 challenge);
+
+  return rc;
 }
 
 /**
