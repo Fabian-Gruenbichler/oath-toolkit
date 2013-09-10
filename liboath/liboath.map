@@ -80,6 +80,7 @@ LIBOATH_2.2.0
 LIBOATH_2.6.0
 {
   global:
+    oath_ocra_suite_parse;
     oath_ocra_generate;
     oath_ocra_validate;
     oath_retrieve_mode;
