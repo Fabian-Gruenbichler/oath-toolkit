@@ -849,18 +849,102 @@ oath_ocra_validate (const char *secret, size_t secret_length,
   return OATH_OK;
 }
 
-
 /**
- * oath_ocra_generate_challenge:
- * @challenge_type: Type of challenge, see %oath_ocra_challenge_t .
- * @challenge_length: Number of chars in challenge.
- * @challenge: Output buffer, needs space for @challenge_length+1 chars.
+ * oath_ocra_validate2:
+ * @secret: The shared secret string.
+ * @secret_length: Length of @secret.
+ * @ocra_suite: String with information about used hash algorithms and input.
+ * @ocra_suite_length: Length of @ocra_suite.
+ * @counter: Counter value, optional (see @ocra_suite).
+ * @challenges: Array of challenge strings, mandatory
+ * @password_hash: Hashed password value, optional (see @ocra_suite).
+ * @session: Static data about current session, optional (see @ocra-suite).
+ * @now: Current timestamp, optional (see @ocra_suite).
+ * @validate_ocra: OCRA value to validate against.
  *
- * Generates a (pseudo)random challenge string depending on the type and length
- * given by @challenge_type and @challenge_length.
+ * Validates a given OCRA value by generating an OCRA value by passing the given
+ * parameters to %oath_ocra_generate2 and comparing the result.
+ *
+ * The string @ocra_suite denotes which mode of OCRA is to be used. Furthermore
+ * it contains information about which of the possible optional data inputs are
+ * to be used, and how.
+ *
+ * The challenge strings passed in @challenges are combined into one long
+ * challenge string, which is then converted to binary. They must be
+ * NUL-terminated.
+ *
+ * Returns: %OATH_OK (zero) on successful validation, an error code otherwise.
  *
  * Since: 2.6.0
  **/
+int
+oath_ocra_validate2 (const char *secret, size_t secret_length,
+		     const char *ocra_suite,
+		     size_t ocra_suite_length, uint64_t counter,
+		     const char *challenges[2], const char *password_hash,
+		     const char *session, time_t now,
+		     const char *validate_ocra)
+{
+  int rc;
+  char generated_ocra[11];
+  rc =
+    oath_ocra_generate2 (secret, secret_length, ocra_suite, ocra_suite_length,
+			 counter, challenges, password_hash,
+			 session, now, generated_ocra);
+  if (rc != OATH_OK)
+    return rc;
+  if (strcmp (generated_ocra, validate_ocra) != 0)
+    return OATH_STRCMP_ERROR;
+  return OATH_OK;
+}
+
+/**
+ * oath_ocra_validate3:
+ * @secret: The shared secret string.
+ * @secret_length: Length of @secret.
+ * @ocra_suite: String with information about used hash algorithms and input.
+ * @ocra_suite_length: Length of @ocra_suite.
+ * @counter: Counter value, optional (see @ocra_suite).
+ * @challenges: Challenge string, mandatory
+ * @password_hash: Hashed password value, optional (see @ocra_suite).
+ * @session: Static data about current session, optional (see @ocra-suite).
+ * @now: Current timestamp, optional (see @ocra_suite).
+ * @validate_ocra: OCRA value to validate against.
+ *
+ * Validates a given OCRA value by generating an OCRA value by passing the given
+ * parameters to %oath_ocra_generate3 and comparing the result.
+ * 
+ * The challenge string passed in @challenges contains either one challenge
+ * question (in case of one-way authentication) or the correct concatenation of
+ * both challenge questions (in case of two-way authentication). It must be
+ * NUL-terminated.
+ *
+ * Returns: %OATH_OK (zero) on successful validation, an error code otherwise.
+ *
+ * Since: 2.6.0
+ **/
+
+int
+oath_ocra_validate3 (const char *secret, size_t secret_length,
+		     const char *ocra_suite, size_t ocra_suite_length,
+		     uint64_t counter, const char *challenges,
+		     const char *password_hash,
+		     const char *session, time_t now,
+		     const char *validate_ocra)
+{
+  int rc;
+  char generated_ocra[11];
+  rc =
+    oath_ocra_generate3 (secret, secret_length, ocra_suite, ocra_suite_length,
+			 counter, challenges, password_hash, session, now,
+			 generated_ocra);
+  if (rc != OATH_OK)
+    return rc;
+  if (strcmp (generated_ocra, validate_ocra) != 0)
+    return OATH_STRCMP_ERROR;
+  return OATH_OK;
+}
+
 void
 oath_ocra_generate_challenge (oath_ocra_challenge_t
 			      challenge_type,
