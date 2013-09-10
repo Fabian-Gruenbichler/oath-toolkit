@@ -63,13 +63,20 @@ const struct
 int
 main (void)
 {
-  int i;
+  int rc, i;
+
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
       char challenge[tv[i].length + 1];
       char *tmp = challenge;
       int j;
-      oath_ocra_generate_challenge (tv[i].ocra_suite, challenge);
+
+      rc = oath_ocra_challenge_generate_suitestr (tv[i].ocra_suite, challenge);
+      if (rc != OATH_OK)
+	{
+	  printf ("oath_ocra_challenge_generate_suitestr at %d: %d\n", i, rc);
+	  return 1;
+	}
 
       printf ("Challenge #%d, length %d:\n", i, tv[i].length);
       printf (challenge);

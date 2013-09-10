@@ -495,7 +495,13 @@ oath_ocra_validate3 (const char *secret, size_t secret_length,
 		     const char *validate_ocra);
 
 extern OATHAPI int
-oath_ocra_generate_challenge(const char *ocra_suite, char *challenge);
+oath_ocra_challenge_generate (oath_ocra_challenge_t challtype,
+			      size_t length,
+			      char *challenge);
+
+extern OATHAPI int
+oath_ocra_challenge_generate_suitestr (const char *ocra_suite,
+				       char *challenge);
 
 /* Usersfile */
 

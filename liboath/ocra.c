@@ -920,21 +920,68 @@ oath_ocra_validate3 (const char *secret, size_t secret_length,
   return OATH_OK;
 }
 
-static void
-oath_ocra_generate_challenge_internal (oath_ocra_challenge_t
-				       challenge_type,
-				       size_t challenge_length,
+/**
+ * oath_ocra_challenge_generate_suitestr:
+ * @ocra_suite: String with OCRA Suite description.
+ * @challenge: Output buffer, needs space for the challenge length
+ *   in @ocra_suite plus one, which is max 65 bytes.
+ *
+ * Generates a (pseudo)random challenge string depending on the type
+ * and length given by @ocra_suite.
+ *
+ * Returns: %OATH_OK (zero) on success, an error code otherwise.
+ *
+ * Since: 2.6.0
+ **/
+int
+oath_ocra_challenge_generate_suitestr (const char *ocra_suite,
 				       char *challenge)
+{
+  int rc;
+  oath_ocra_suite_t parsed_suite;
+
+  rc = oath_ocra_suite_parse (ocra_suite, &parsed_suite);
+  if (rc != OATH_OK)
+    return rc;
+
+  return oath_ocra_challenge_generate (parsed_suite.challenge_type,
+				       parsed_suite.challenge_length,
+				       challenge);
+}
+
+/**
+ * oath_ocra_challenge_generate:
+ * @challtype: a %oath_ocra_challenge_t type, e.g., #OATH_OCRA_CHALLENGE_HEX.
+ * @length: length of challenge to generate.
+ * @challenge: Output buffer, needs space for 65 chars.
+ *
+ * Generates a (pseudo)random challenge string of length @length and
+ * type @challtype.
+ *
+ * According to the RFC, challenges questions SHOULD be 20-byte values
+ * and MUST be at least t-byte values where t stands for the
+ * digit-length of the OCRA truncation output.
+ *
+ * Returns: %OATH_OK (zero) on success, an error code otherwise.
+ *
+ * Since: 2.6.0
+ **/
+int
+oath_ocra_challenge_generate (oath_ocra_challenge_t challtype,
+			      size_t length,
+			      char *challenge)
 {
   long int random_number;
   char *tmp = challenge;
   uint8_t i;
+
   srandom (time (NULL));
-  switch (challenge_type)
+
+  switch (challtype)
     {
     case OATH_OCRA_CHALLENGE_NUM:
       {
-	for (i = 0; i < challenge_length; i++)
+	for (i = 0; i < length; i++)
 	  {
 	    random_number = random () % 10;
 	    if (random_number < 10)
@@ -946,7 +993,7 @@ oath_ocra_generate_challenge_internal (oath_ocra_challenge_t
       break;
     case OATH_OCRA_CHALLENGE_HEX:
       {
-	for (i = 0; i < challenge_length; i++)
+	for (i = 0; i < length; i++)
 	  {
 	    random_number = random () % 16;
 	    if (random_number < 10)
@@ -960,7 +1007,7 @@ oath_ocra_generate_challenge_internal (oath_ocra_challenge_t
       break;
     case OATH_OCRA_CHALLENGE_ALPHA:
       {
-	for (i = 0; i < challenge_length; i++)
+	for (i = 0; i < length; i++)
 	  {
 	    random_number = random () % 62;
 	    if (random_number < 10)
@@ -977,38 +1024,8 @@ oath_ocra_generate_challenge_internal (oath_ocra_challenge_t
     default:
       break;
     }
-}
 
-/**
- * oath_ocra_generate_challenge:
- * @ocra_suite: String containing challenge specification and other OCRA
- * parameters.
- * @challenge: Output buffer, needs space for 65 chars.
- *
- * Generates a (pseudo)random challenge string depending on the type and length
- * given by @ocra_suite.
- *
- * Returns: %OATH_OK (zero) on success, an error code otherwise.
- *
- * Since: 2.6.0
- **/
-int
-oath_ocra_generate_challenge (const char *ocra_suite,
-			      char *challenge)
-{
-  int rc;
-  oath_ocra_suite_t parsed_suite;
-
-  rc = oath_ocra_suite_parse (ocra_suite, &parsed_suite);
-
-  if (rc != OATH_OK)
-    return rc;
-
-  oath_ocra_generate_challenge_internal (parsed_suite.challenge_type,
-					 parsed_suite.challenge_length,
-					 challenge);
-
-  return rc;
+  return OATH_OK;
 }
 
 /**
