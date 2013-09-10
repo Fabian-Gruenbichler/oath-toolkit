@@ -78,7 +78,8 @@ main (void)
 	  return 1;
 	}
 
-      printf ("Challenge #%d, length %d:\n", i, tv[i].length);
+      printf ("Challenge #%d length %d for suite %s:\n", i, tv[i].length,
+	      tv[i].ocra_suite);
       printf (challenge);
       printf ("\n\n");
 

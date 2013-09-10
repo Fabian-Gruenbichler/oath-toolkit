@@ -60,6 +60,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module crypto/gc-hmac-sha256-tests:
   # Code from module crypto/gc-hmac-sha512:
   # Code from module crypto/gc-hmac-sha512-tests:
+  # Code from module crypto/gc-random:
   # Code from module crypto/gc-tests:
   # Code from module crypto/hmac-sha1:
   # Code from module crypto/hmac-sha1-tests:
@@ -278,6 +279,8 @@ AC_DEFUN([gl_INIT],
   gl_MODULE_INDICATOR([gc-hmac-sha256])
   gl_GC_HMAC_SHA512
   gl_MODULE_INDICATOR([gc-hmac-sha512])
+  gl_GC_RANDOM
+  gl_MODULE_INDICATOR([gc-random])
   gl_SHA1
   gl_SHA256
   gl_SHA512
@@ -812,6 +815,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/gc-hmac-sha1.m4
   m4/gc-hmac-sha256.m4
   m4/gc-hmac-sha512.m4
+  m4/gc-random.m4
   m4/gc.m4
   m4/getcwd.m4
   m4/getdelim.m4
