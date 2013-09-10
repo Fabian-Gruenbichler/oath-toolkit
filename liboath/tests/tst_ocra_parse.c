@@ -73,8 +73,7 @@ main (void)
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
       oath_ocra_suite_t osi;
-      rc = oath_ocra_parse_suite (tv[i].ocra_suite,
-				  strlen (tv[i].ocra_suite), &osi);
+      rc = oath_ocra_suite_parse (tv[i].ocra_suite, &osi);
 
       if (rc != tv[i].rc)
 	{

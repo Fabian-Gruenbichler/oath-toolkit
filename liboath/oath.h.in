@@ -438,7 +438,7 @@ typedef enum
   } oath_ocra_suite_t;
 
 extern OATHAPI int
-oath_ocra_parse_suite (const char *ocra_suite,
+oath_ocra_suite_parse (const char *ocra_suite,
 		       oath_ocra_suite_t * ocra_suite_info);
 
 extern OATHAPI int
