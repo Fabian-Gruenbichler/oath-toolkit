@@ -59,7 +59,7 @@ typedef struct
   size_t datainput_length;
 } oath_ocra_suite_t;
 
-char *oath_ocra_convert_challenge (oath_ocra_challenge_t
+static char *oath_ocra_convert_challenge (oath_ocra_challenge_t
 				   challenge_type,
 				   const char *challenge_string,
 				   size_t * challenge_binary_length);
@@ -126,7 +126,7 @@ static int oath_ocra_generate_internal (const char *secret,
  * Since: 2.6.0
  **/
 
-int
+static int
 oath_ocra_parse_suite (const char *ocra_suite, size_t ocra_suite_length,
 		       oath_ocra_suite_t * ocra_suite_info)
 {
@@ -980,7 +980,7 @@ oath_ocra_validate3 (const char *secret, size_t secret_length,
   return OATH_OK;
 }
 
-void
+static void
 oath_ocra_generate_challenge_internal (oath_ocra_challenge_t
 				       challenge_type,
 				       size_t challenge_length,
