@@ -285,7 +285,7 @@ parse_usersfile (const char *username,
 
 	case OATH_ALGO_OCRA:
 	  rc = oath_ocra_validate3 (secret, secret_length,
-				    ocra_suite, strlen (ocra_suite),
+				    ocra_suite,
 				    start_moving_factor,
 				    challenge, NULL, NULL, time (NULL), otp);
 	  if (rc == OATH_OK)

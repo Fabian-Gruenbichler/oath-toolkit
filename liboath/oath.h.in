@@ -411,7 +411,6 @@ extern OATHAPI int
 oath_ocra_generate(const char *secret,
 			size_t secret_length,
 			const char *ocra_suite,
-			size_t ocra_suite_length,
 			uint64_t counter,
 			const char *challenges,
 			size_t challenges_length,
@@ -422,14 +421,14 @@ oath_ocra_generate(const char *secret,
 
 extern OATHAPI int
 oath_ocra_generate2 (const char *secret, size_t secret_length,
-		     const char *ocra_suite, size_t ocra_suite_length,
+		     const char *ocra_suite,
 		     uint64_t counter, const char *challenges[2],
 		     const char *password_hash,
 		     const char *session, time_t now, char *output_ocra);
 
 extern OATHAPI int
 oath_ocra_generate3 (const char *secret, size_t secret_length,
-		     const char *ocra_suite, size_t ocra_suite_length,
+		     const char *ocra_suite,
 		     uint64_t counter, const char *challenges,
 		     const char *password_hash,
 		     const char *session, time_t now, char *output_ocra);
@@ -438,7 +437,6 @@ extern OATHAPI int
 oath_ocra_validate(const char *secret,
 			size_t secret_length,
 			const char *ocra_suite,
-			size_t ocra_suite_length,
 			uint64_t counter,
 			const char *challenges,
 			size_t challenges_length,
@@ -449,22 +447,21 @@ oath_ocra_validate(const char *secret,
 
 extern OATHAPI int
 oath_ocra_validate2 (const char *secret, size_t secret_length,
-		     const char *ocra_suite,
-		     size_t ocra_suite_length, uint64_t counter,
+		     const char *ocra_suite, uint64_t counter,
 		     const char *challenges[2], const char *password_hash,
 		     const char *session, time_t now,
 		     const char *validate_ocra);
 
 extern OATHAPI int
 oath_ocra_validate3 (const char *secret, size_t secret_length,
-		     const char *ocra_suite, size_t ocra_suite_length,
+		     const char *ocra_suite,
 		     uint64_t counter, const char *challenges,
 		     const char *password_hash,
 		     const char *session, time_t now,
 		     const char *validate_ocra);
 
 extern OATHAPI int
-oath_ocra_generate_challenge(const char *ocra_suite, size_t ocra_suite_length, char *challenge);
+oath_ocra_generate_challenge(const char *ocra_suite, char *challenge);
 
 /* Usersfile */
 

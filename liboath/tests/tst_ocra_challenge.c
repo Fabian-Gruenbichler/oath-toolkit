@@ -69,8 +69,7 @@ main (void)
       char challenge[tv[i].length + 1];
       char *tmp = challenge;
       int j;
-      oath_ocra_generate_challenge (tv[i].ocra_suite,
-				    strlen (tv[i].ocra_suite), challenge);
+      oath_ocra_generate_challenge (tv[i].ocra_suite, challenge);
 
       printf ("Challenge #%d, length %d:\n", i, tv[i].length);
       printf (challenge);

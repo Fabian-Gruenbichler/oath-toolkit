@@ -267,7 +267,7 @@ main (void)
       rc = oath_hex2bin (tv[i].challenges_hex, challenges_bin, &bin_length);
 
       rc = oath_ocra_generate (tv[i].secret, strlen (tv[i].secret),
-			       tv[i].ocra_suite, strlen (tv[i].ocra_suite),
+			       tv[i].ocra_suite,
 			       tv[i].counter, challenges_bin,
 			       bin_length, pHash,
 			       tv[i].session, tv[i].now, output_ocra);
