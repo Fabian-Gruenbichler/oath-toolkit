@@ -459,18 +459,27 @@ oath_ocra_generate(const char *secret,
 			char *output_ocra);
 
 extern OATHAPI int
-oath_ocra_generate2 (const char *secret, size_t secret_length,
-		     const char *ocra_suite,
-		     uint64_t counter, const char *challenges[2],
-		     const char *password_hash,
-		     const char *session, time_t now, char *output_ocra);
+oath_ocra_generate2 (const char *secret,
+			size_t secret_length,
+			const char *ocra_suite,
+			uint64_t counter,
+			const char **challenges,
+			size_t challenge_count,
+			const char *password_hash,
+			const char *session,
+			time_t now,
+			char *output_ocra);
 
 extern OATHAPI int
-oath_ocra_generate3 (const char *secret, size_t secret_length,
-		     const char *ocra_suite,
-		     uint64_t counter, const char *challenges,
-		     const char *password_hash,
-		     const char *session, time_t now, char *output_ocra);
+oath_ocra_generate3 (const char *secret,
+			size_t secret_length,
+			const char *ocra_suite,
+			uint64_t counter,
+			const char *challenges,
+			const char *password_hash,
+			const char *session,
+			time_t now,
+			char *output_ocra);
 
 extern OATHAPI int
 oath_ocra_validate(const char *secret,
@@ -485,19 +494,27 @@ oath_ocra_validate(const char *secret,
 			const char *validate_ocra);
 
 extern OATHAPI int
-oath_ocra_validate2 (const char *secret, size_t secret_length,
-		     const char *ocra_suite, uint64_t counter,
-		     const char *challenges[2], const char *password_hash,
-		     const char *session, time_t now,
-		     const char *validate_ocra);
+oath_ocra_validate2 (const char *secret,
+			size_t secret_length,
+			const char *ocra_suite,
+			uint64_t counter,
+			const char **challenges,
+			size_t challenges_count,
+			const char *password_hash,
+			const char *session,
+			time_t now,
+			const char *validate_ocra);
 
 extern OATHAPI int
-oath_ocra_validate3 (const char *secret, size_t secret_length,
-		     const char *ocra_suite,
-		     uint64_t counter, const char *challenges,
-		     const char *password_hash,
-		     const char *session, time_t now,
-		     const char *validate_ocra);
+oath_ocra_validate3 (const char *secret,
+			size_t secret_length,
+			const char *ocra_suite,
+			uint64_t counter,
+			const char *challenges,
+			const char *password_hash,
+			const char *session,
+			time_t now,
+			const char *validate_ocra);
 
 extern OATHAPI int
 oath_ocra_challenge_generate (oath_ocra_challenge_t challtype,

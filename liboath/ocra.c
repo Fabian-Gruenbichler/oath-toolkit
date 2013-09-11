@@ -315,60 +315,52 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 int
 oath_ocra_generate2 (const char *secret, size_t secret_length,
 		     const char *ocra_suite,
-		     uint64_t counter, const char *challenges[2],
+		     uint64_t counter, const char **challenges,
+		     size_t challenges_count,
 		     const char *password_hash,
 		     const char *session, time_t now, char *output_ocra)
 {
 
   int rc;
   oath_ocra_suite_t ocra_suite_info;
-  char *challenges_combined;
-  char *challenges_combined_bin;
-  size_t challenges_combined_bin_length;
+  char chall_string[129];
+  char *chall_bin;
+  size_t chall_bin_length;
 
-  rc =
-    oath_ocra_suite_parse (ocra_suite, &ocra_suite_info);
+  size_t curr_length;
+  int tmp = 0;
+
+  if (challenges_count < 1)
+    return -1;
+
+  rc = oath_ocra_suite_parse (ocra_suite, &ocra_suite_info);
 
   if (rc != OATH_OK)
     return rc;
 
-  if (challenges[1] == NULL)
+  while (challenges_count > 0 && tmp < 128)
     {
-      challenges_combined = malloc (strlen (challenges[0]) + 1);
-      if (challenges_combined == NULL)
-	return OATH_MALLOC_ERROR;
-      memcpy (challenges_combined, challenges[0], strlen (challenges[0]));
-      challenges_combined[strlen (challenges[0])] = '\0';
-    }
-  else
-    {
-      challenges_combined =
-	malloc (strlen (challenges[0]) + strlen (challenges[1]) + 1);
-      if (challenges_combined == NULL)
-	return OATH_MALLOC_ERROR;
-      memcpy (challenges_combined, challenges[0], strlen (challenges[0]));
-      memcpy (challenges_combined +
-	      strlen (challenges[0]), challenges[1], strlen (challenges[1]));
-      challenges_combined[strlen (challenges[0]) +
-			  strlen (challenges[1])] = '\0';
+      curr_length = strlen (*challenges);
+      memcpy (chall_string + tmp, *challenges, curr_length);
+      tmp += curr_length;
+      challenges++;
     }
 
-  challenges_combined_bin =
-    oath_ocra_convert_challenge (ocra_suite_info.challenge_type,
-				 challenges_combined,
-				 &challenges_combined_bin_length);
-  if (challenges_combined == NULL)
+  /* 2* max 64 chars limit */
+  if (tmp >= 128)
     return -1;
-  rc =
-    oath_ocra_generate_internal (secret, secret_length, ocra_suite,
-				 counter,
-				 challenges_combined,
-				 challenges_combined_bin_length,
-				 password_hash, session, now,
-				 ocra_suite_info, output_ocra);
-  free (challenges_combined);
-  free (challenges_combined_bin);
-  return rc;
+
+  chall_string[tmp] = '\0';
+  chall_bin = oath_ocra_convert_challenge (ocra_suite_info.challenge_type,
+					   chall_string, &chall_bin_length);
+
+  if (chall_bin == NULL)
+    return -1;
+
+  return oath_ocra_generate_internal (secret, secret_length, ocra_suite,
+				      counter, chall_bin, chall_bin_length,
+				      password_hash, session, now,
+				      ocra_suite_info, output_ocra);
 }
 
 /**
@@ -417,8 +409,7 @@ oath_ocra_generate3 (const char *secret, size_t secret_length,
   char *challenges_bin;
   size_t challenges_bin_length;
 
-  rc =
-    oath_ocra_suite_parse (ocra_suite, &ocra_suite_info);
+  rc = oath_ocra_suite_parse (ocra_suite, &ocra_suite_info);
 
   if (rc != OATH_OK)
     return rc;
@@ -727,7 +718,7 @@ int
 oath_ocra_validate2 (const char *secret, size_t secret_length,
 		     const char *ocra_suite,
 		     uint64_t counter,
-		     const char *challenges[2], const char *password_hash,
+		     const char **challenges, size_t challenges_count, const char *password_hash,
 		     const char *session, time_t now,
 		     const char *validate_ocra)
 {
@@ -735,7 +726,7 @@ oath_ocra_validate2 (const char *secret, size_t secret_length,
   char generated_ocra[11];
   rc =
     oath_ocra_generate2 (secret, secret_length, ocra_suite,
-			 counter, challenges, password_hash,
+			 counter, challenges, challenges_count, password_hash,
 			 session, now, generated_ocra);
   if (rc != OATH_OK)
     return rc;
@@ -810,8 +801,7 @@ oath_ocra_validate3 (const char *secret, size_t secret_length,
  **/
 int
 oath_ocra_challenge_generate (oath_ocra_challenge_t challtype,
-			      size_t length,
-			      char *challenge)
+			      size_t length, char *challenge)
 {
   const char *lookup =
     "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -851,7 +841,7 @@ oath_ocra_challenge_generate (oath_ocra_challenge_t challtype,
       return OATH_CRYPTO_ERROR;
     }
 
-  p = (uint8_t*) rng;
+  p = (uint8_t *) rng;
   for (i = 0; i < length; i++)
     *challenge++ = lookup[*p++ % wraplen];
   *challenge = '\0';
