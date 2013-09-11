@@ -25,6 +25,21 @@
 
 #include <stdio.h>
 
+/* Taken from liboath/ocra.c */
+struct oath_ocra_suite_st
+{
+  uint8_t use_counter;
+  oath_ocra_hash_t password_hash;
+  oath_ocra_hash_t ocra_hash;
+  oath_ocra_challenge_t challenge_type;
+  uint8_t challenge_length;
+  uint16_t time_step_size;
+  uint16_t session_length;
+  uint8_t digits;
+  size_t datainput_length;
+};
+typedef struct oath_ocra_suite_st oath_ocra_suite_t;
+
 const struct
 {
   char *ocra_suite;
@@ -35,8 +50,9 @@ const struct
   {
     "OCRA-1:HOTP-SHA1-8:QN08",
     {
-  OATH_OCRA_HASH_SHA1, 8, 0, OATH_OCRA_CHALLENGE_NUM, 8,
-	OATH_OCRA_HASH_NONE, 0, 0, 152}, OATH_OK},
+    0, OATH_OCRA_HASH_NONE, OATH_OCRA_HASH_SHA1, OATH_OCRA_CHALLENGE_NUM, 8,
+	0, 0, 8, 152}
+  , OATH_OK},
   {
     "OCRA-2:HOTP-SHA1-6:QN08",
     {
@@ -44,23 +60,25 @@ const struct
   {
     "OCRA-1:HOTP-SHA256-6:C-QA10",
     {
-  OATH_OCRA_HASH_SHA256, 6, 1, OATH_OCRA_CHALLENGE_ALPHA, 10,
-	OATH_OCRA_HASH_NONE, 0, 0, 164}, OATH_OK},
+  1, OATH_OCRA_HASH_NONE, OATH_OCRA_HASH_SHA256,
+	OATH_OCRA_CHALLENGE_ALPHA, 10, 0, 0, 6, 164}, OATH_OK},
   {
     "OCRA-1:HOTP-SHA512-2:C-QH24",
     {
-  OATH_OCRA_HASH_SHA512, 2, 1, OATH_OCRA_CHALLENGE_HEX, 24,
-	OATH_OCRA_HASH_NONE, 0, 0, 0}, OATH_SUITE_PARSE_ERROR},
+  1, OATH_OCRA_HASH_NONE, OATH_OCRA_HASH_SHA512, OATH_OCRA_CHALLENGE_HEX,
+	25, 0, 0, 0}, OATH_SUITE_PARSE_ERROR},
   {
     "OCRA-1:HOTP-SHA1-0:C-QA20-PSHA512-S128-T12M",
     {
-  OATH_OCRA_HASH_SHA1, 0, 1, OATH_OCRA_CHALLENGE_ALPHA, 20,
-	OATH_OCRA_HASH_SHA512, 128, 720, 380}, OATH_OK},
+    1, OATH_OCRA_HASH_SHA512, OATH_OCRA_HASH_SHA1,
+	OATH_OCRA_CHALLENGE_ALPHA, 20, 720, 128, 0, 380}
+  , OATH_OK},
   {
     "OCRA-1:HOTP-SHA256-10:QN64-PSHA512-S064-T12H",
     {
-  OATH_OCRA_HASH_SHA256, 10, 0, OATH_OCRA_CHALLENGE_NUM, 64,
-	OATH_OCRA_HASH_SHA512, 64, 12 * 60 * 60, 309}, OATH_OK}
+    0, OATH_OCRA_HASH_SHA512, OATH_OCRA_HASH_SHA256,
+	OATH_OCRA_CHALLENGE_NUM, 64, 12 * 60 * 60, 64, 10, 309}
+  , OATH_OK}
 };
 
 int
@@ -79,7 +97,60 @@ main (void)
     {
       oath_ocra_suite_t osi;
 
-      rc = oath_ocra_suite_parse (tv[i].ocra_suite, &osi);
+      rc = oath_ocra_suite_counter (tv[i].ocra_suite, &(osi.use_counter));
+      if (rc != tv[i].rc)
+	{
+	  printf ("rc mismatch for testcase #%d: %d vs %d\n", i, rc,
+		  tv[i].rc);
+	  return 1;
+	}
+      rc =
+	oath_ocra_suite_challenge (tv[i].ocra_suite, &(osi.challenge_type),
+				   &(osi.challenge_length));
+      if (rc != tv[i].rc)
+	{
+	  printf ("rc mismatch for testcase #%d: %d vs %d\n", i, rc,
+		  tv[i].rc);
+	  return 1;
+	}
+      rc =
+	oath_ocra_suite_data_length (tv[i].ocra_suite,
+				     &(osi.datainput_length));
+      if (rc != tv[i].rc)
+	{
+	  printf ("rc mismatch for testcase #%d: %d vs %d\n", i, rc,
+		  tv[i].rc);
+	  return 1;
+	}
+      rc = oath_ocra_suite_digits (tv[i].ocra_suite, &(osi.digits));
+      if (rc != tv[i].rc)
+	{
+	  printf ("rc mismatch for testcase #%d: %d vs %d\n", i, rc,
+		  tv[i].rc);
+	  return 1;
+	}
+      rc = oath_ocra_suite_hash (tv[i].ocra_suite, &(osi.ocra_hash));
+      if (rc != tv[i].rc)
+	{
+	  printf ("rc mismatch for testcase #%d: %d vs %d\n", i, rc,
+		  tv[i].rc);
+	  return 1;
+	}
+      rc = oath_ocra_suite_password (tv[i].ocra_suite, &(osi.password_hash));
+      if (rc != tv[i].rc)
+	{
+	  printf ("rc mismatch for testcase #%d: %d vs %d\n", i, rc,
+		  tv[i].rc);
+	  return 1;
+	}
+      rc = oath_ocra_suite_session (tv[i].ocra_suite, &(osi.session_length));
+      if (rc != tv[i].rc)
+	{
+	  printf ("rc mismatch for testcase #%d: %d vs %d\n", i, rc,
+		  tv[i].rc);
+	  return 1;
+	}
+      rc = oath_ocra_suite_time (tv[i].ocra_suite, &(osi.time_step_size));
       if (rc != tv[i].rc)
 	{
 	  printf ("rc mismatch for testcase #%d: %d vs %d\n", i, rc,
@@ -146,4 +217,5 @@ main (void)
 	    }
 	}
     }
+  return 0;
 }

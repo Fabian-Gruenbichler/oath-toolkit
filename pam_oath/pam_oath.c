@@ -209,9 +209,8 @@ pam_sm_authenticate (pam_handle_t * pamh,
 
 	if (algorithm == OATH_ALGO_OCRA)
 	  {
-	    rc = oath_ocra_generate_challenge (ocra_suite,
-					       strlen (ocra_suite),
-					       challenge_string);
+	    rc = oath_ocra_challenge_generate_suitestr (ocra_suite,
+							challenge_string);
 
 	    if (rc != OATH_OK)
 	      {
