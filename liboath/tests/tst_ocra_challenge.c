@@ -71,7 +71,8 @@ main (void)
       char *tmp = challenge;
       int j;
 
-      rc = oath_ocra_challenge_generate_suitestr (tv[i].ocra_suite, challenge);
+      rc =
+	oath_ocra_challenge_generate_suitestr (tv[i].ocra_suite, challenge);
       if (rc != OATH_OK)
 	{
 	  printf ("oath_ocra_challenge_generate_suitestr at %d: %d\n", i, rc);
