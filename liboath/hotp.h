@@ -23,6 +23,15 @@
 #define HOTP_H
 
 extern int
+_oath_hotp_generate3 (const char *secret,
+		      size_t secret_length,
+		      const char *counter,
+		      size_t counter_size,
+		      unsigned digits,
+		      int flags,
+		      char *output_otp);
+
+extern int
 _oath_hotp_generate2 (const char *secret,
 		      size_t secret_length,
 		      uint64_t moving_factor,

@@ -30,6 +30,7 @@
 #include <ctype.h>
 #include <inttypes.h>
 
+#include "hotp.h"
 #include "gc.h"
 
 static int
@@ -599,17 +600,24 @@ oath_ocra_generate_internal (const char *secret,
   uint64_t time_steps = 0;
   char tmp_str[17];
   size_t tmp_len;
-  char *hs;
-  size_t hs_size;
-  uint8_t offset;
-  long S;
-  int otp_len;
+  int flags;
+
+  if (challenges == NULL || challenges_length > 128)
+    return OATH_SUITE_MISMATCH_ERROR;
+
+  if (parsed_suite->password_hash != OATH_OCRA_HASH_NONE
+      && password_hash == NULL)
+    return OATH_SUITE_MISMATCH_ERROR;
+
+  if (parsed_suite->session_length > 0 && session == NULL)
+    return OATH_SUITE_MISMATCH_ERROR;
+
+  if (parsed_suite->session_length > 512)
+    return OATH_SUITE_MISMATCH_ERROR;
 
   byte_array = malloc (parsed_suite->datainput_length);
   if (byte_array == NULL)
-    {
-      return OATH_MALLOC_ERROR;
-    }
+    return OATH_MALLOC_ERROR;
 
   curr_ptr = byte_array;
   memcpy (curr_ptr, parsed_suite->ocrasuite_str,
@@ -617,6 +625,7 @@ oath_ocra_generate_internal (const char *secret,
   curr_ptr += strlen (parsed_suite->ocrasuite_str);
   curr_ptr[0] = '\0';
   curr_ptr++;
+
   if (parsed_suite->use_counter)
     {
       tmp_len = 8;
@@ -625,31 +634,12 @@ oath_ocra_generate_internal (const char *secret,
       curr_ptr += 8;
     }
 
-  if (challenges == NULL)
-    {
-      free (byte_array);
-      return OATH_SUITE_MISMATCH_ERROR;
-    }
-
-  if (challenges_length > 128)
-    {
-      free (byte_array);
-      return OATH_SUITE_MISMATCH_ERROR;
-    }
-
   memcpy (curr_ptr, challenges, challenges_length);
   curr_ptr += challenges_length;
   if (challenges_length < 128)
     {
       memset (curr_ptr, '\0', (128 - challenges_length));
       curr_ptr += (128 - challenges_length);
-    }
-
-  if (parsed_suite->password_hash != OATH_OCRA_HASH_NONE
-      && password_hash == NULL)
-    {
-      free (byte_array);
-      return OATH_SUITE_MISMATCH_ERROR;
     }
 
   switch (parsed_suite->password_hash)
@@ -672,11 +662,6 @@ oath_ocra_generate_internal (const char *secret,
 
   if (parsed_suite->session_length > 0)
     {
-      if (session == NULL)
-	{
-	  free (byte_array);
-	  return OATH_SUITE_MISMATCH_ERROR;
-	}
       memcpy (curr_ptr, session, parsed_suite->session_length);
       curr_ptr += parsed_suite->session_length;
     }
@@ -689,105 +674,27 @@ oath_ocra_generate_internal (const char *secret,
       oath_hex2bin (tmp_str, curr_ptr, &tmp_len);
     }
 
-  /*
-    char hexstring[parsed_suite->datainput_length*2+1];
-    oath_bin2hex(byte_array,parsed_suite->datainput_length,hexstring);
-
-    printf("BYTE_ARRAY: %d\n",parsed_suite->datainput_length);
-    printf(hexstring);
-    printf("\n");
-  */
-
   switch (parsed_suite->ocra_hash)
     {
-    case OATH_OCRA_HASH_SHA1:
-      hs_size = GC_SHA1_DIGEST_SIZE;
-      hs = (char *) malloc (hs_size * sizeof (char));
-      if (hs == NULL)
-	{
-	  free (byte_array);
-	  return OATH_MALLOC_ERROR;
-	}
-      rc =
-	gc_hmac_sha1 (secret, secret_length, byte_array,
-		      parsed_suite->datainput_length, hs);
-      break;
     case OATH_OCRA_HASH_SHA256:
-      hs_size = GC_SHA256_DIGEST_SIZE;
-      hs = (char *) malloc (hs_size * sizeof (char));
-      if (hs == NULL)
-	{
-	  free (byte_array);
-	  return OATH_MALLOC_ERROR;
-	}
-      rc =
-	gc_hmac_sha256 (secret, secret_length, byte_array,
-			parsed_suite->datainput_length, hs);
+      flags = OATH_TOTP_HMAC_SHA256;
       break;
     case OATH_OCRA_HASH_SHA512:
-      hs_size = GC_SHA512_DIGEST_SIZE;
-      hs = (char *) malloc (hs_size * sizeof (char));
-      if (hs == NULL)
-	{
-	  free (byte_array);
-	  return OATH_MALLOC_ERROR;
-	}
-      rc =
-	gc_hmac_sha512 (secret, secret_length, byte_array,
-			parsed_suite->datainput_length, hs);
+      flags = OATH_TOTP_HMAC_SHA512;
       break;
     default:
-      free (byte_array);
-      return OATH_SUITE_PARSE_ERROR;
+      flags = 0;
+      break;
     }
+
+  rc = _oath_hotp_generate3 (secret, secret_length, byte_array,
+			     parsed_suite->datainput_length,
+			     parsed_suite->digits,
+			     flags, output_ocra);
 
   free (byte_array);
-  if (rc != 0)
-    {
-      return OATH_CRYPTO_ERROR;
-    }
 
-  offset = hs[hs_size - 1] & 0x0f;
-  S = (((hs[offset] & 0x7f) << 24)
-       | ((hs[offset + 1] & 0xff) << 16)
-       | ((hs[offset + 2] & 0xff) << 8) | ((hs[offset + 3] & 0xff)));
-  free (hs);
-  switch (parsed_suite->digits)
-    {
-    case 4:
-      S = S % 10000;
-      break;
-    case 5:
-      S = S % 100000;
-      break;
-    case 6:
-      S = S % 1000000;
-      break;
-    case 7:
-      S = S % 10000000;
-      break;
-    case 8:
-      S = S % 100000000;
-      break;
-    case 9:
-      S = S % 1000000000;
-      break;
-    case 10:
-      S = S % 10000000000;
-      break;
-    case 0:
-      break;
-    default:
-      return OATH_INVALID_DIGITS;
-      break;
-    }
-
-  otp_len = snprintf (output_ocra, parsed_suite->digits + 1, "%.*ld",
-		      parsed_suite->digits, S);
-  output_ocra[parsed_suite->digits] = '\0';
-  if (otp_len <= 0 || otp_len != parsed_suite->digits)
-    return OATH_PRINTF_ERROR;
-  return OATH_OK;
+  return rc;
 }
 
 /**
