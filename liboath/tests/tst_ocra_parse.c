@@ -28,7 +28,7 @@
 
 const struct
 {
-  char *ocra_suite;
+  char *ocrasuite;
   int rc;
   oath_ocra_hash_t ocra_hash;
   uint8_t digits;
@@ -83,7 +83,7 @@ main (void)
 
   for (i = 0; i < sizeof (tv) / sizeof (tv[0]); i++)
     {
-      oath_ocra_suite_t *osi;
+      oath_ocrasuite_t *osi;
       oath_ocra_hash_t ocra_hash;
       int digits;
       bool counter;
@@ -93,7 +93,7 @@ main (void)
       uint16_t time_step_size;
       size_t session_length;
 
-      rc = oath_ocra_suite_parse (tv[i].ocra_suite, &osi);
+      rc = oath_ocrasuite_parse (tv[i].ocrasuite, &osi);
       if (rc != tv[i].rc)
 	{
 	  printf ("rc mismatch for testcase #%d: %d vs %d\n", i, rc,
@@ -103,7 +103,7 @@ main (void)
       if (rc != OATH_OK)
 	continue;
 
-      ocra_hash = oath_ocra_suite_get_cryptofunction_hash (osi);
+      ocra_hash = oath_ocrasuite_get_cryptofunction_hash (osi);
       if (ocra_hash != tv[i].ocra_hash)
 	{
 	  printf ("hash mismatch for testcase #%d: %d vs %d\n", i, ocra_hash,
@@ -111,7 +111,7 @@ main (void)
 	  return 1;
 	}
 
-      digits = oath_ocra_suite_get_cryptofunction_digits (osi);
+      digits = oath_ocrasuite_get_cryptofunction_digits (osi);
       if (digits != tv[i].digits)
 	{
 	  printf ("digits mismatch for testcase #%d: %d vs %d\n", i, digits,
@@ -119,7 +119,7 @@ main (void)
 	  return 1;
 	}
 
-      counter = oath_ocra_suite_get_counter (osi);
+      counter = oath_ocrasuite_get_counter (osi);
       if (counter != tv[i].counter)
 	{
 	  printf ("counter mismatch for testcase #%d: %d vs %d\n", i, counter,
@@ -127,7 +127,7 @@ main (void)
 	  return 1;
 	}
 
-      challenge_type = oath_ocra_suite_get_challenge_type (osi);
+      challenge_type = oath_ocrasuite_get_challenge_type (osi);
       if (challenge_type != tv[i].challenge_type)
 	{
 	  printf ("challenge_type mismatch for testcase #%d: %d vs %d\n", i,
@@ -135,7 +135,7 @@ main (void)
 	  return 1;
 	}
 
-      challenge_length = oath_ocra_suite_get_challenge_length (osi);
+      challenge_length = oath_ocrasuite_get_challenge_length (osi);
       if (challenge_length != tv[i].challenge_length)
 	{
 	  printf ("challenge_length mismatch for testcase #%d: %d vs %d\n", i,
@@ -143,7 +143,7 @@ main (void)
 	  return 1;
 	}
 
-      password_hash = oath_ocra_suite_get_password_hash (osi);
+      password_hash = oath_ocrasuite_get_password_hash (osi);
       if (password_hash != tv[i].password_hash)
 	{
 	  printf ("password_hash mismatch for testcase #%d: %d vs %d\n", i,
@@ -151,7 +151,7 @@ main (void)
 	  return 1;
 	}
 
-      session_length = oath_ocra_suite_get_session_length (osi);
+      session_length = oath_ocrasuite_get_session_length (osi);
       if (session_length != tv[i].session_length)
 	{
 	  printf ("session_length mismatch for testcase #%d: %d vs %d\n", i,
@@ -159,7 +159,7 @@ main (void)
 	  return 1;
 	}
 
-      oath_ocra_suite_done (osi);
+      oath_ocrasuite_done (osi);
     }
 
   return 0;
