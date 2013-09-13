@@ -378,7 +378,7 @@ oath_totp_validate4_callback (const char *secret,
  * @OATH_OCRA_HASH_SHA256: Use SHA256 hash function.
  * @OATH_OCRA_HASH_SHA512: Use SHA512 hash function.
  *
- * Flags set by %oath_ocra_parse_suite.
+ * Hash functions used for HOTP CryptoFunction and PIN/password hash.
  **/
 typedef enum {
     OATH_OCRA_HASH_NONE,
@@ -437,6 +437,15 @@ oath_ocrasuite_get_session_length (oath_ocrasuite_t *osh);
 
 extern OATHAPI int
 oath_ocrasuite_get_time (oath_ocrasuite_t *osh, uint16_t * time_step_size);
+
+extern OATHAPI int
+oath_ocra_challenge_generate (oath_ocra_challenge_t challtype,
+			      size_t length,
+			      char *challenge);
+
+extern OATHAPI int
+oath_ocra_challenge_generate_suitestr (const char *ocrasuite,
+				       char *challenge);
 
 extern OATHAPI int
 oath_ocra_generate(const char *secret,
@@ -507,15 +516,6 @@ oath_ocra_validate3 (const char *secret,
 			const char *session,
 			time_t now,
 			const char *validate_ocra);
-
-extern OATHAPI int
-oath_ocra_challenge_generate (oath_ocra_challenge_t challtype,
-			      size_t length,
-			      char *challenge);
-
-extern OATHAPI int
-oath_ocra_challenge_generate_suitestr (const char *ocrasuite,
-				       char *challenge);
 
 /* Usersfile */
 
