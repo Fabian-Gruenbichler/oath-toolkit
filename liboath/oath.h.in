@@ -389,49 +389,54 @@ typedef enum {
 
 /**
  * oath_ocra_challenge_t:
- * @OATH_OCRA_CHALLENGE_HEX: Challenge string is in hex format.
- * @OATH_OCRA_CHALLENGE_ALPHA: Challenge string is alpha numeric.
+ * @OATH_OCRA_CHALLENGE_ALPHANUM: Challenge string is alphanumeric.
  * @OATH_OCRA_CHALLENGE_NUM: Challenge string is numerical.
+ * @OATH_OCRA_CHALLENGE_HEX: Challenge string is hexadecimal.
  *
- * Numerical challenges must be converted to base 16 as a number before being
- * string-converted to binary. Hexadecimal challenges are simply converted to
- * binary, alpha numerical challenges must be left unchanged.
- *
- * Flag set by oath_ocra_parse_suite, also used by %oath_ocra_generate_challenge
- * and %oath_ocra_convert_challenge.
+ * Indicate the challenge format used.  Numerical challenges must be
+ * converted to base 16 as a number before being string-converted to
+ * binary. Hexadecimal challenges are simply converted to binary,
+ * alpha numerical challenges must be left unchanged.
  **/
 typedef enum
 {
-    OATH_OCRA_CHALLENGE_HEX = 0,
-    OATH_OCRA_CHALLENGE_ALPHA = 1,
-    OATH_OCRA_CHALLENGE_NUM = 2
+  OATH_OCRA_CHALLENGE_ALPHANUM = 0,
+  OATH_OCRA_CHALLENGE_NUM = 1,
+  OATH_OCRA_CHALLENGE_HEX = 2
 } oath_ocra_challenge_t;
 
-extern OATHAPI int
-oath_ocra_suite_challenge (char *ocra_suite,
-		oath_ocra_challenge_t * type,
-		uint8_t * length);
+typedef struct oath_ocra_suite_st oath_ocra_suite_t;
 
 extern OATHAPI int
-oath_ocra_suite_counter (char *ocra_suite, uint8_t * use_counter);
+oath_ocra_suite_parse (const char *ocra_suite,
+		       oath_ocra_suite_t **osh);
+
+extern OATHAPI void
+oath_ocra_suite_done (oath_ocra_suite_t *osh);
+
+extern OATHAPI oath_ocra_hash_t
+oath_ocra_suite_get_cryptofunction_hash (oath_ocra_suite_t *osh);
 
 extern OATHAPI int
-oath_ocra_suite_data_length (char *ocra_suite, size_t * datainput_length);
+oath_ocra_suite_get_cryptofunction_digits (oath_ocra_suite_t *osh);
+
+extern OATHAPI bool
+oath_ocra_suite_get_counter (oath_ocra_suite_t *osh);
+
+extern OATHAPI oath_ocra_challenge_t
+oath_ocra_suite_get_challenge_type (oath_ocra_suite_t *osh);
+
+extern OATHAPI size_t
+oath_ocra_suite_get_challenge_length (oath_ocra_suite_t *osh);
+
+extern OATHAPI oath_ocra_hash_t
+oath_ocra_suite_get_password_hash (oath_ocra_suite_t *osh);
 
 extern OATHAPI int
-oath_ocra_suite_digits (char *ocra_suite, uint8_t * digits);
+oath_ocra_suite_get_session_length (oath_ocra_suite_t *osh);
 
 extern OATHAPI int
-oath_ocra_suite_hash (char *ocra_suite, oath_ocra_hash_t * ocra_hash);
-
-extern OATHAPI int
-oath_ocra_suite_password (char *ocra_suite, oath_ocra_hash_t * password_hash);
-
-extern OATHAPI int
-oath_ocra_suite_session (char *ocra_suite, uint16_t * session_length);
-
-extern OATHAPI int
-oath_ocra_suite_time (char *ocra_suite, uint16_t * time_step_size);
+oath_ocra_suite_get_time (oath_ocra_suite_t *osh, uint16_t * time_step_size);
 
 extern OATHAPI int
 oath_ocra_generate(const char *secret,

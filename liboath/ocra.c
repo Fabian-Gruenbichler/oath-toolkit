@@ -33,15 +33,21 @@
 #include "gc.h"
 
 static int
-map_hash (int h)
+map_hash (int h, int *len)
 {
   switch (h)
     {
     case 1:
+      if (len)
+	*len = GC_SHA1_DIGEST_SIZE;
       return OATH_OCRA_HASH_SHA1;
     case 256:
+      if (len)
+	*len = GC_SHA256_DIGEST_SIZE;
       return OATH_OCRA_HASH_SHA256;
     case 512:
+      if (len)
+	*len = GC_SHA512_DIGEST_SIZE;
       return OATH_OCRA_HASH_SHA512;
     default:
       return -1;
@@ -54,7 +60,7 @@ map_challtype (char c)
   switch (c)
     {
     case 'A':
-      return OATH_OCRA_CHALLENGE_ALPHA;
+      return OATH_OCRA_CHALLENGE_ALPHANUM;
     case 'N':
       return OATH_OCRA_CHALLENGE_NUM;
     case 'H':
@@ -66,68 +72,45 @@ map_challtype (char c)
 
 struct oath_ocra_suite_st
 {
+  /* Defines which hash function is used to calculate the HMAC value
+     on which the OCRA value is based. */
+  oath_ocra_hash_t ocra_hash;
+  /* Length of OCRA value (0 == no truncation, full HMAC length). */
+  int digits;
   /* Flag indicating whether a counter value is used as data input. */
-  uint8_t use_counter;
+  bool use_counter;
   /* Defines which hash function is used for password hashes.
      OATH_OCRA_HAS_NONE means no password hash is included as data
      input. */
   oath_ocra_hash_t password_hash;
-  /* Defines which hash function is used to calculate the HMAC value
-     on which the OCRA value is based. */
-  oath_ocra_hash_t ocra_hash;
   /* Defines challenge type, see %oath_ocra_challenge_t. */
   oath_ocra_challenge_t challenge_type;
   /* Defines length of one challenge string. */
-  uint8_t challenge_length;
+  size_t challenge_length;
   /* Divisor used to calculate timesteps passed since beginning of
      epoch (0 means no timestamp included as data input). */
   uint16_t time_step_size;
   /* Number of bytes of session information used as data input. */
-  uint16_t session_length;
-  /* Length of OCRA value (0 == no truncation, full HMAC length). */
-  uint8_t digits;
+  size_t session_length;
   /* Total length of data input (in bytes). */
   size_t datainput_length;
 };
-typedef struct oath_ocra_suite_st oath_ocra_suite_t;
 
-/**
- * oath_ocra_suite_parse:
- * @ocra_suite: String to be parsed.
- * @ocra_suite_info: Struct where parsed information is stored.
- *
- * Parses the zero-terminated string @ocra_suite, storing the results
- * in @ocra_suite_info.  OCRA Suite strings are explained in RFC 6287,
- * but two example strings would be "OCRA-1:HOTP-SHA1-4:QH8-S512" and
- * "OCRA-1:HOTP-SHA512-8:C-QN08-PSHA1".
- *
- * Returns: On success, %OATH_OK (zero) is returned, otherwise an
- * error code is returned.
- *
- * Since: 2.6.0
- **/
 static int
-oath_ocra_suite_parse (const char *ocra_suite,
-		       oath_ocra_suite_t * ocra_suite_info)
+parse_ocrasuite (const char *ocra_suite, oath_ocra_suite_t *ocra_suite_info)
 {
   const char *tmp;
   char f, Gunit;
   unsigned h, n, xx, nnn, G, consumed;
 
-  if (ocra_suite_info == NULL || ocra_suite == NULL)
-    return OATH_SUITE_PARSE_ERROR;
+  memset (ocra_suite_info, 0, sizeof (*ocra_suite_info));
 
-  ocra_suite_info->password_hash = OATH_OCRA_HASH_NONE;
-  ocra_suite_info->ocra_hash = OATH_OCRA_HASH_NONE;
-  ocra_suite_info->use_counter = 0;
-  ocra_suite_info->time_step_size = 0;
-  ocra_suite_info->session_length = 0;
   ocra_suite_info->datainput_length = strlen (ocra_suite) + 1 + 128;
 
   if (sscanf (ocra_suite, "OCRA-1:HOTP-SHA%u-%u:%n", &h, &n, &consumed) != 2)
     return OATH_SUITE_PARSE_ERROR;
 
-  ocra_suite_info->ocra_hash = map_hash (h);
+  ocra_suite_info->ocra_hash = map_hash (h, NULL);
   if ((int) ocra_suite_info->ocra_hash == -1)
     return OATH_SUITE_PARSE_ERROR;
 
@@ -139,7 +122,7 @@ oath_ocra_suite_parse (const char *ocra_suite,
   if (strncmp (tmp, "C-", 2) == 0)
     {
       ocra_suite_info->datainput_length += 8;
-      ocra_suite_info->use_counter = 1;
+      ocra_suite_info->use_counter = true;
       tmp += 2;
     }
 
@@ -185,21 +168,12 @@ oath_ocra_suite_parse (const char *ocra_suite,
 
   if (h)
     {
-      ocra_suite_info->password_hash = map_hash (h);
-      switch (ocra_suite_info->password_hash)
-	{
-	case OATH_OCRA_HASH_SHA1:
-	  ocra_suite_info->datainput_length += 20;
-	  break;
-	case OATH_OCRA_HASH_SHA256:
-	  ocra_suite_info->datainput_length += 32;
-	  break;
-	case OATH_OCRA_HASH_SHA512:
-	  ocra_suite_info->datainput_length += 64;
-	  break;
-	default:
-	  return OATH_SUITE_PARSE_ERROR;
-	}
+      int len;
+
+      ocra_suite_info->password_hash = map_hash (h, &len);
+      if ((int) ocra_suite_info->password_hash == -1)
+	return OATH_SUITE_PARSE_ERROR;
+      ocra_suite_info->datainput_length += len;
     }
 
   if (G)
@@ -233,7 +207,176 @@ oath_ocra_suite_parse (const char *ocra_suite,
     }
 
   return OATH_OK;
+}
 
+/**
+ * oath_ocra_suite_parse:
+ * @ocra_suite_string: OCRASuite string to be parsed.
+ * @osh: Output pointer to OCRASuite handle.
+ *
+ * Parses the zero-terminated string @ocra_suite_string, storing the
+ * results in the @osh handle.  OCRA Suite strings are explained in
+ * RFC 6287.  Two example strings would be
+ * "OCRA-1:HOTP-SHA1-4:QH8-S512" and
+ * "OCRA-1:HOTP-SHA512-8:C-QN08-PSHA1".
+ *
+ * Returns: On success, %OATH_OK (zero) is returned, otherwise an
+ * error code is returned.
+ *
+ * Since: 2.6.0
+ **/
+int
+oath_ocra_suite_parse (const char *ocra_suite,
+		       oath_ocra_suite_t **osh)
+{
+  int rc;
+
+  if (ocra_suite == NULL || osh == NULL)
+    return OATH_SUITE_PARSE_ERROR;
+
+  *osh = calloc (1, sizeof (**osh));
+  if (*osh == NULL)
+    return OATH_MALLOC_ERROR;
+
+  rc = parse_ocrasuite (ocra_suite, *osh);
+  if (rc != OATH_OK)
+    {
+      free (*osh);
+      return rc;
+    }
+
+  return OATH_OK;
+}
+
+/**
+ * oath_ocra_suite_done:
+ * @osh: OCRASuite handle.
+ *
+ * Releases all resources associated with the given @osh OCRASuite
+ * handle.
+ *
+ * Since: 2.6.0
+ **/
+void
+oath_ocra_suite_done (oath_ocra_suite_t *osh)
+{
+  free (osh);
+}
+
+/**
+ * oath_ocra_suite_get_cryptofunction_hash:
+ * @osh: OCRASuite handle.
+ *
+ * Get the hash function used for an HOTP CryptoFunction.
+ *
+ * Returns: An %oath_ocra_hash_t hash function.
+ *
+ * Since: 2.6.0
+ **/
+oath_ocra_hash_t
+oath_ocra_suite_get_cryptofunction_hash (oath_ocra_suite_t *osh)
+{
+  return osh->ocra_hash;
+}
+
+/**
+ * oath_ocra_suite_get_cryptofunction_digits:
+ * @osh: OCRASuite handle.
+ *
+ * Get the truncation size for an HOTP CryptoFunction.  This is the
+ * output size of the OCRA code, e.g., 6 means the output code is 6
+ * digits.
+ *
+ * Returns: Size of output code.
+ *
+ * Since: 2.6.0
+ **/
+int
+oath_ocra_suite_get_cryptofunction_digits (oath_ocra_suite_t *osh)
+{
+  return osh->digits;
+}
+
+/**
+ * oath_ocra_suite_get_counter:
+ * @osh: OCRASuite handle.
+ *
+ * Get whether a counter is used for the OCRASuite.
+ *
+ * Returns: true if a counter is used, false otherwise.
+ *
+ * Since: 2.6.0
+ **/
+bool
+oath_ocra_suite_get_counter (oath_ocra_suite_t *osh)
+{
+  return osh->use_counter;
+}
+
+/**
+ * oath_ocra_suite_get_challenge_type:
+ * @osh: OCRASuite handle.
+ *
+ * Get the challenge format in the @osh OCRASuite.
+ *
+ * Returns: a %oath_ocra_challenge_t value, e.g.,
+ * #OATH_OCRA_CHALLENGE_ALPHANUM.
+ *
+ * Since: 2.6.0
+ **/
+oath_ocra_challenge_t
+oath_ocra_suite_get_challenge_type (oath_ocra_suite_t *osh)
+{
+  return osh->challenge_type;
+}
+
+/**
+ * oath_ocra_suite_get_challenge_length:
+ * @osh: OCRASuite handle.
+ *
+ * Get the maximum length of the challenge of the OCRASuite, 04-64.
+ *
+ * Returns: challenge length.
+ *
+ * Since: 2.6.0
+ **/
+size_t
+oath_ocra_suite_get_challenge_length (oath_ocra_suite_t *osh)
+{
+  return osh->challenge_length;
+}
+
+/**
+ * oath_ocra_suite_get_password_hash:
+ * @osh: OCRASuite handle.
+ *
+ * Get the hash function used for the PIN/password.
+ *
+ * Returns: a %oath_ocra_hash_t value, e.g., #OATH_OCRA_HASH_SHA1.
+ *
+ * Since: 2.6.0
+ **/
+oath_ocra_hash_t
+oath_ocra_suite_get_password_hash (oath_ocra_suite_t *osh)
+{
+  return osh->password_hash;
+}
+
+/**
+ * oath_ocra_suite_get_session_length:
+ * @osh: OCRASuite handle.
+ *
+ * Get the length of the session data in the OCRASuite.
+ *
+ * Returns: length of the session, typical values are 64, 128, 256 and
+ * 512.
+ *
+ * Since: 2.6.0
+ **/
+int
+oath_ocra_suite_get_session_length (oath_ocra_suite_t *osh)
+{
+  return osh->session_length;
 }
 
 static char *oath_ocra_convert_challenge (oath_ocra_challenge_t
@@ -249,161 +392,8 @@ static int oath_ocra_generate_internal (const char *secret,
 					size_t challenges_length,
 					const char *password_hash,
 					const char *session, time_t now,
-					oath_ocra_suite_t parsed_suite,
+					oath_ocra_suite_t *parsed_suite,
 					char *output_ocra);
-
-int
-oath_ocra_suite_counter (char *ocra_suite, uint8_t * use_counter)
-{
-
-  int rc;
-  oath_ocra_suite_t osi;
-
-  if (use_counter == NULL)
-    return OATH_SUITE_PARSE_ERROR;
-
-  rc = oath_ocra_suite_parse (ocra_suite, &osi);
-  if (rc != OATH_OK)
-    return rc;
-
-  *use_counter = osi.use_counter;
-
-  return OATH_OK;
-}
-
-int
-oath_ocra_suite_digits (char *ocra_suite, uint8_t * digits)
-{
-
-  int rc;
-  oath_ocra_suite_t osi;
-
-  if (digits == NULL)
-    return OATH_SUITE_PARSE_ERROR;
-
-  rc = oath_ocra_suite_parse (ocra_suite, &osi);
-  if (rc != OATH_OK)
-    return rc;
-
-  *digits = osi.digits;
-
-  return OATH_OK;
-}
-
-int
-oath_ocra_suite_data_length (char *ocra_suite, size_t * datainput_length)
-{
-
-  int rc;
-  oath_ocra_suite_t osi;
-
-  if (datainput_length == NULL)
-    return OATH_SUITE_PARSE_ERROR;
-
-  rc = oath_ocra_suite_parse (ocra_suite, &osi);
-  if (rc != OATH_OK)
-    return rc;
-
-  *datainput_length = osi.datainput_length;
-
-  return OATH_OK;
-}
-
-int
-oath_ocra_suite_session (char *ocra_suite, uint16_t * session_length)
-{
-
-  int rc;
-  oath_ocra_suite_t osi;
-
-  if (session_length == NULL)
-    return OATH_SUITE_PARSE_ERROR;
-
-  rc = oath_ocra_suite_parse (ocra_suite, &osi);
-  if (rc != OATH_OK)
-    return rc;
-
-  *session_length = osi.session_length;
-
-  return OATH_OK;
-}
-
-int
-oath_ocra_suite_hash (char *ocra_suite, oath_ocra_hash_t * ocra_hash)
-{
-
-  int rc;
-  oath_ocra_suite_t osi;
-
-  if (ocra_hash == NULL)
-    return OATH_SUITE_PARSE_ERROR;
-
-  rc = oath_ocra_suite_parse (ocra_suite, &osi);
-  if (rc != OATH_OK)
-    return rc;
-
-  *ocra_hash = osi.ocra_hash;
-
-  return OATH_OK;
-}
-
-int
-oath_ocra_suite_password (char *ocra_suite, oath_ocra_hash_t * password_hash)
-{
-
-  int rc;
-  oath_ocra_suite_t osi;
-
-  if (password_hash == NULL)
-    return OATH_SUITE_PARSE_ERROR;
-
-  rc = oath_ocra_suite_parse (ocra_suite, &osi);
-  if (rc != OATH_OK)
-    return rc;
-
-  *password_hash = osi.password_hash;
-
-  return OATH_OK;
-}
-
-int
-oath_ocra_suite_challenge (char *ocra_suite, oath_ocra_challenge_t * type,
-			   uint8_t * length)
-{
-
-  int rc;
-  oath_ocra_suite_t osi;
-
-  if (type == NULL || length == NULL)
-    return OATH_SUITE_PARSE_ERROR;
-
-  rc = oath_ocra_suite_parse (ocra_suite, &osi);
-  if (rc != OATH_OK)
-    return rc;
-
-  *type = osi.challenge_type;
-  *length = osi.challenge_length;
-
-  return OATH_OK;
-}
-
-int
-oath_ocra_suite_time (char *ocra_suite, uint16_t * time_step_size)
-{
-
-  int rc;
-  oath_ocra_suite_t osi;
-
-  if (time_step_size == NULL)
-    return OATH_SUITE_PARSE_ERROR;
-
-  rc = oath_ocra_suite_parse (ocra_suite, &osi);
-  if (rc != OATH_OK)
-    return rc;
-
-  *time_step_size = osi.time_step_size;
-  return OATH_OK;
-}
 
 /**
  * oath_ocra_generate:
@@ -445,18 +435,17 @@ oath_ocra_generate (const char *secret, size_t secret_length,
 		    const char *session, time_t now, char *output_ocra)
 {
   int rc;
-  oath_ocra_suite_t ocra_suite_info;
+  oath_ocra_suite_t os;
 
-  rc = oath_ocra_suite_parse (ocra_suite, &ocra_suite_info);
+  rc = parse_ocrasuite (ocra_suite, &os);
   if (rc != OATH_OK)
     return rc;
 
   return oath_ocra_generate_internal (secret, secret_length, ocra_suite,
 				      counter, challenges,
 				      challenges_length, password_hash,
-				      session, now, ocra_suite_info,
+				      session, now, &os,
 				      output_ocra);
-
 }
 
 /**
@@ -502,7 +491,7 @@ oath_ocra_generate2 (const char *secret, size_t secret_length,
 {
 
   int rc;
-  oath_ocra_suite_t ocra_suite_info;
+  oath_ocra_suite_t os;
   char chall_string[129];
   char *chall_bin;
   size_t chall_bin_length;
@@ -513,8 +502,7 @@ oath_ocra_generate2 (const char *secret, size_t secret_length,
   if (challenges_count < 1)
     return -1;
 
-  rc = oath_ocra_suite_parse (ocra_suite, &ocra_suite_info);
-
+  rc = parse_ocrasuite (ocra_suite, &os);
   if (rc != OATH_OK)
     return rc;
 
@@ -531,7 +519,7 @@ oath_ocra_generate2 (const char *secret, size_t secret_length,
     return -1;
 
   chall_string[tmp] = '\0';
-  chall_bin = oath_ocra_convert_challenge (ocra_suite_info.challenge_type,
+  chall_bin = oath_ocra_convert_challenge (os.challenge_type,
 					   chall_string, &chall_bin_length);
 
   if (chall_bin == NULL)
@@ -540,7 +528,7 @@ oath_ocra_generate2 (const char *secret, size_t secret_length,
   return oath_ocra_generate_internal (secret, secret_length, ocra_suite,
 				      counter, chall_bin, chall_bin_length,
 				      password_hash, session, now,
-				      ocra_suite_info, output_ocra);
+				      &os, output_ocra);
 }
 
 /**
@@ -585,21 +573,20 @@ oath_ocra_generate3 (const char *secret, size_t secret_length,
 		     const char *session, time_t now, char *output_ocra)
 {
   int rc;
-  oath_ocra_suite_t ocra_suite_info;
+  oath_ocra_suite_t os;
   char *challenges_bin;
   size_t challenges_bin_length;
 
-  rc = oath_ocra_suite_parse (ocra_suite, &ocra_suite_info);
-
+  rc = parse_ocrasuite (ocra_suite, &os);
   if (rc != OATH_OK)
     return rc;
 
   if (challenges == NULL)
     return OATH_SUITE_MISMATCH_ERROR;
 
-  challenges_bin =
-    oath_ocra_convert_challenge (ocra_suite_info.challenge_type,
-				 challenges, &challenges_bin_length);
+  challenges_bin = oath_ocra_convert_challenge (os.challenge_type,
+						challenges,
+						&challenges_bin_length);
   if (challenges_bin == NULL)
     return -1;
   rc =
@@ -608,7 +595,7 @@ oath_ocra_generate3 (const char *secret, size_t secret_length,
 				 challenges_bin,
 				 challenges_bin_length,
 				 password_hash, session, now,
-				 ocra_suite_info, output_ocra);
+				 &os, output_ocra);
   free (challenges_bin);
   return rc;
 }
@@ -622,10 +609,9 @@ oath_ocra_generate_internal (const char *secret,
 			     size_t challenges_length,
 			     const char *password_hash,
 			     const char *session, time_t now,
-			     oath_ocra_suite_t parsed_suite,
+			     oath_ocra_suite_t *parsed_suite,
 			     char *output_ocra)
 {
-
   int rc;
   char *byte_array = NULL;
   char *curr_ptr = NULL;
@@ -637,7 +623,8 @@ oath_ocra_generate_internal (const char *secret,
   uint8_t offset;
   long S;
   int otp_len;
-  byte_array = malloc (parsed_suite.datainput_length);
+
+  byte_array = malloc (parsed_suite->datainput_length);
   if (byte_array == NULL)
     {
       return OATH_MALLOC_ERROR;
@@ -648,7 +635,7 @@ oath_ocra_generate_internal (const char *secret,
   curr_ptr += strlen (ocra_suite);
   curr_ptr[0] = '\0';
   curr_ptr++;
-  if (parsed_suite.use_counter)
+  if (parsed_suite->use_counter)
     {
       tmp_len = 8;
       sprintf (tmp_str, "%016" PRIX64, counter);
@@ -676,14 +663,14 @@ oath_ocra_generate_internal (const char *secret,
       curr_ptr += (128 - challenges_length);
     }
 
-  if (parsed_suite.password_hash != OATH_OCRA_HASH_NONE
+  if (parsed_suite->password_hash != OATH_OCRA_HASH_NONE
       && password_hash == NULL)
     {
       free (byte_array);
       return OATH_SUITE_MISMATCH_ERROR;
     }
 
-  switch (parsed_suite.password_hash)
+  switch (parsed_suite->password_hash)
     {
     case OATH_OCRA_HASH_SHA1:
       memcpy (curr_ptr, password_hash, 20);
@@ -701,35 +688,35 @@ oath_ocra_generate_internal (const char *secret,
       break;
     }
 
-  if (parsed_suite.session_length > 0)
+  if (parsed_suite->session_length > 0)
     {
       if (session == NULL)
 	{
 	  free (byte_array);
 	  return OATH_SUITE_MISMATCH_ERROR;
 	}
-      memcpy (curr_ptr, session, parsed_suite.session_length);
-      curr_ptr += parsed_suite.session_length;
+      memcpy (curr_ptr, session, parsed_suite->session_length);
+      curr_ptr += parsed_suite->session_length;
     }
 
-  if (parsed_suite.time_step_size != 0)
+  if (parsed_suite->time_step_size != 0)
     {
-      time_steps = now / parsed_suite.time_step_size;
+      time_steps = now / parsed_suite->time_step_size;
       tmp_len = 8;
       sprintf (tmp_str, "%016" PRIX64, time_steps);
       oath_hex2bin (tmp_str, curr_ptr, &tmp_len);
     }
 
   /*
-     char hexstring[parsed_suite.datainput_length*2+1];
-     oath_bin2hex(byte_array,parsed_suite.datainput_length,hexstring);
+     char hexstring[parsed_suite->datainput_length*2+1];
+     oath_bin2hex(byte_array,parsed_suite->datainput_length,hexstring);
 
-     printf("BYTE_ARRAY: %d\n",parsed_suite.datainput_length);
+     printf("BYTE_ARRAY: %d\n",parsed_suite->datainput_length);
      printf(hexstring);
      printf("\n");
    */
 
-  switch (parsed_suite.ocra_hash)
+  switch (parsed_suite->ocra_hash)
     {
     case OATH_OCRA_HASH_SHA1:
       hs_size = GC_SHA1_DIGEST_SIZE;
@@ -741,7 +728,7 @@ oath_ocra_generate_internal (const char *secret,
 	}
       rc =
 	gc_hmac_sha1 (secret, secret_length, byte_array,
-		      parsed_suite.datainput_length, hs);
+		      parsed_suite->datainput_length, hs);
       break;
     case OATH_OCRA_HASH_SHA256:
       hs_size = GC_SHA256_DIGEST_SIZE;
@@ -753,7 +740,7 @@ oath_ocra_generate_internal (const char *secret,
 	}
       rc =
 	gc_hmac_sha256 (secret, secret_length, byte_array,
-			parsed_suite.datainput_length, hs);
+			parsed_suite->datainput_length, hs);
       break;
     case OATH_OCRA_HASH_SHA512:
       hs_size = GC_SHA512_DIGEST_SIZE;
@@ -765,7 +752,7 @@ oath_ocra_generate_internal (const char *secret,
 	}
       rc =
 	gc_hmac_sha512 (secret, secret_length, byte_array,
-			parsed_suite.datainput_length, hs);
+			parsed_suite->datainput_length, hs);
       break;
     default:
       free (byte_array);
@@ -783,7 +770,7 @@ oath_ocra_generate_internal (const char *secret,
        | ((hs[offset + 1] & 0xff) << 16)
        | ((hs[offset + 2] & 0xff) << 8) | ((hs[offset + 3] & 0xff)));
   free (hs);
-  switch (parsed_suite.digits)
+  switch (parsed_suite->digits)
     {
     case 4:
       S = S % 10000;
@@ -813,11 +800,10 @@ oath_ocra_generate_internal (const char *secret,
       break;
     }
 
-  otp_len =
-    snprintf (output_ocra, parsed_suite.digits + 1, "%.*ld",
-	      parsed_suite.digits, S);
-  output_ocra[parsed_suite.digits] = '\0';
-  if (otp_len <= 0 || ((unsigned) otp_len) != parsed_suite.digits)
+  otp_len = snprintf (output_ocra, parsed_suite->digits + 1, "%.*ld",
+		      parsed_suite->digits, S);
+  output_ocra[parsed_suite->digits] = '\0';
+  if (otp_len <= 0 || otp_len != parsed_suite->digits)
     return OATH_PRINTF_ERROR;
   return OATH_OK;
 }
@@ -993,16 +979,16 @@ oath_ocra_challenge_generate (oath_ocra_challenge_t challtype,
 
   switch (challtype)
     {
+    case OATH_OCRA_CHALLENGE_ALPHANUM:
+      wraplen = sizeof (lookup) - 1;
+      break;
+
     case OATH_OCRA_CHALLENGE_NUM:
       wraplen = 10;
       break;
 
     case OATH_OCRA_CHALLENGE_HEX:
       wraplen = 16;
-      break;
-
-    case OATH_OCRA_CHALLENGE_ALPHA:
-      wraplen = sizeof (lookup) - 1;
       break;
 
     default:
@@ -1049,14 +1035,14 @@ oath_ocra_challenge_generate_suitestr (const char *ocra_suite,
 				       char *challenge)
 {
   int rc;
-  oath_ocra_suite_t parsed_suite;
+  oath_ocra_suite_t os;
 
-  rc = oath_ocra_suite_parse (ocra_suite, &parsed_suite);
+  rc = parse_ocrasuite (ocra_suite, &os);
   if (rc != OATH_OK)
     return rc;
 
-  return oath_ocra_challenge_generate (parsed_suite.challenge_type,
-				       parsed_suite.challenge_length,
+  return oath_ocra_challenge_generate (os.challenge_type,
+				       os.challenge_length,
 				       challenge);
 }
 
@@ -1137,7 +1123,8 @@ oath_ocra_convert_challenge (oath_ocra_challenge_t
 	free (temp);
       }
       break;
-    case OATH_OCRA_CHALLENGE_ALPHA:
+
+    case OATH_OCRA_CHALLENGE_ALPHANUM:
       {
 	*challenge_binary_length = challenge_length;
 	challenges = malloc (*challenge_binary_length);

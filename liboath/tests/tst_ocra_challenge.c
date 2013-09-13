@@ -39,7 +39,7 @@ const struct
   {
   OATH_OCRA_CHALLENGE_NUM, "OCRA-1:HOTP-SHA256-8:QN05", 5},
   {
-  OATH_OCRA_CHALLENGE_ALPHA, "OCRA-1:HOTP-SHA256-8:QA10", 10},
+  OATH_OCRA_CHALLENGE_ALPHANUM, "OCRA-1:HOTP-SHA256-8:QA10", 10},
   {
   OATH_OCRA_CHALLENGE_HEX, "OCRA-1:HOTP-SHA256-8:QH24", 24},
   {
@@ -53,11 +53,11 @@ const struct
   {
   OATH_OCRA_CHALLENGE_NUM, "OCRA-1:HOTP-SHA256-8:QN64", 64},
   {
-  OATH_OCRA_CHALLENGE_ALPHA, "OCRA-1:HOTP-SHA256-8:QA04", 4},
+  OATH_OCRA_CHALLENGE_ALPHANUM, "OCRA-1:HOTP-SHA256-8:QA04", 4},
   {
-  OATH_OCRA_CHALLENGE_ALPHA, "OCRA-1:HOTP-SHA256-8:QA15", 15},
+  OATH_OCRA_CHALLENGE_ALPHANUM, "OCRA-1:HOTP-SHA256-8:QA15", 15},
   {
-  OATH_OCRA_CHALLENGE_ALPHA, "OCRA-1:HOTP-SHA256-8:QA64", 64}
+  OATH_OCRA_CHALLENGE_ALPHANUM, "OCRA-1:HOTP-SHA256-8:QA64", 64}
 };
 
 int
@@ -118,13 +118,13 @@ main (void)
 	    }
 	  break;
 
-	case OATH_OCRA_CHALLENGE_ALPHA:
+	case OATH_OCRA_CHALLENGE_ALPHANUM:
 	  for (j = 0; j < strlen (challenge); j++)
 	    {
 	      if (!isalnum (*tmp))
 		{
 		  printf
-		    ("OATH_OCRA_CHALLENGE_ALPHA challenge contains non-alphanumeric char at position %d: %c\n",
+		    ("OATH_OCRA_CHALLENGE_ALPHANUM challenge contains non-alphanumeric char at position %d: %c\n",
 		     j, *tmp);
 		  return 1;
 		}
