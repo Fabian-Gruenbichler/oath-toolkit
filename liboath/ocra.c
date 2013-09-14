@@ -71,10 +71,15 @@ map_challtype (char c)
     }
 }
 
+/* Length of longest possible OCRASuite string that is compliant with
+   RFC 6287. */
+#define OCRASUITE_MAXLEN \
+  sizeof("OCRA-1:HOTP-SHA512-10:C-QA64-PSHA512-S512-T59M")
+
 struct oath_ocrasuite_st
 {
   /* A copy of the OCRASuite string.  */
-  char *ocrasuite_str;
+  char ocrasuite_str[OCRASUITE_MAXLEN + 1];
   /* Defines which hash function is used to calculate the HMAC value
      on which the OCRA value is based. */
   oath_ocra_hash_t ocra_hash;
@@ -82,14 +87,14 @@ struct oath_ocrasuite_st
   int digits;
   /* Flag indicating whether a counter value is used as data input. */
   bool use_counter;
-  /* Defines which hash function is used for password hashes.
-     OATH_OCRA_HAS_NONE means no password hash is included as data
-     input. */
-  oath_ocra_hash_t password_hash;
   /* Defines challenge type, see %oath_ocra_challenge_t. */
   oath_ocra_challenge_t challenge_type;
   /* Defines length of one challenge string. */
   size_t challenge_length;
+  /* Defines which hash function is used for password hashes.
+     OATH_OCRA_HAS_NONE means no password hash is included as data
+     input. */
+  oath_ocra_hash_t password_hash;
   /* Divisor used to calculate timesteps passed since beginning of
      epoch (0 means no timestamp included as data input). */
   uint16_t time_step_size;
@@ -108,7 +113,9 @@ parse_ocrasuite (const char *ocrasuite, oath_ocrasuite_t * ocrasuite_info)
 
   memset (ocrasuite_info, 0, sizeof (*ocrasuite_info));
 
-  ocrasuite_info->ocrasuite_str = (char *) ocrasuite;
+  if (strlen (ocrasuite) >= OCRASUITE_MAXLEN)
+    return OATH_SUITE_PARSE_ERROR;
+  strcpy (ocrasuite_info->ocrasuite_str, ocrasuite);
 
   ocrasuite_info->datainput_length = strlen (ocrasuite) + 1 + 128;
 
@@ -249,13 +256,6 @@ oath_ocrasuite_parse (const char *ocrasuite, oath_ocrasuite_t ** osh)
       return rc;
     }
 
-  (*osh)->ocrasuite_str = strdup ((*osh)->ocrasuite_str);
-  if ((*osh)->ocrasuite_str == NULL)
-    {
-      free (*osh);
-      return OATH_MALLOC_ERROR;
-    }
-
   return OATH_OK;
 }
 
@@ -271,7 +271,6 @@ oath_ocrasuite_parse (const char *ocrasuite, oath_ocrasuite_t ** osh)
 void
 oath_ocrasuite_done (oath_ocrasuite_t * osh)
 {
-  free (osh->ocrasuite_str);
   free (osh);
 }
 
