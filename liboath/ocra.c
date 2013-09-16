@@ -808,7 +808,7 @@ oath_ocra_generate2 (const char *secret, size_t secret_length,
 
   while (tmp < challenges_count && curr_pos < 128)
     {
-      curr_length = strlen (challenges[curr_pos]);
+      curr_length = strlen (challenges[tmp]);
       memcpy (chall_string + curr_pos, challenges[tmp], curr_length);
       curr_pos += curr_length;
       tmp++;
