@@ -793,9 +793,10 @@ oath_ocra_generate2 (const char *secret, size_t secret_length,
   oath_ocrasuite_t os;
   char chall_string[129];
   char *chall_bin;
-  size_t chall_bin_length;
+  size_t chall_bin_length = 0;
 
   size_t curr_length;
+  int curr_pos = 0;
   int tmp = 0;
 
   if (challenges_count < 1)
@@ -805,29 +806,32 @@ oath_ocra_generate2 (const char *secret, size_t secret_length,
   if (rc != OATH_OK)
     return rc;
 
-  while (challenges_count > 0 && tmp < 128)
+  while (tmp < challenges_count && curr_pos < 128)
     {
-      curr_length = strlen (*challenges);
-      memcpy (chall_string + tmp, *challenges, curr_length);
-      tmp += curr_length;
-      challenges++;
+      curr_length = strlen (challenges[curr_pos]);
+      memcpy (chall_string + curr_pos, challenges[tmp], curr_length);
+      curr_pos += curr_length;
+      tmp++;
     }
 
   /* 2* max 64 chars limit */
-  if (tmp >= 128)
+  if (curr_pos >= 128)
     return -1;
 
-  chall_string[tmp] = '\0';
+  chall_string[curr_pos] = '\0';
   chall_bin = oath_ocra_convert_challenge (os.challenge_type,
 					   chall_string, &chall_bin_length);
 
   if (chall_bin == NULL)
     return -1;
 
-  return oath_ocra_generate_internal (secret, secret_length,
+  rc = oath_ocra_generate_internal (secret, secret_length,
 				      counter, chall_bin, chall_bin_length,
 				      password_hash, session, now,
 				      &os, output_ocra);
+
+  free(chall_bin);
+  return rc;
 }
 
 /**
