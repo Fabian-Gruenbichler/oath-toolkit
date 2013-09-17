@@ -797,7 +797,7 @@ oath_ocra_generate2 (const char *secret, size_t secret_length,
 
   size_t curr_length;
   int curr_pos = 0;
-  int tmp = 0;
+  size_t tmp = 0;
 
   if (challenges_count < 1)
     return -1;
