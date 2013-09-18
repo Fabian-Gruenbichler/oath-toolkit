@@ -27,7 +27,7 @@ option "now" N "use this time as current time for TOTP and OCRA" string typestr=
 option "digits" d "number of digits in one-time password" int typestr="DIGITS" no
 option "window" w "window of counter values to test when validating OTPs" int typestr="WIDTH" no
 
-option "suite" o "string specifying the ocra-suite parameters to use" string typestr="SUITE" no
+option "suite" o "string specifying the OCRASuite to use, e.g., OCRA-1:HOTP-SHA1-6:QN08" string typestr="SUITE" no
 option "session-info" i "hex encoded string representing session information for OCRA" string typestr="SESSION" no
 option "challenges" C "hex encoded string representing the challenges for OCRA" string typestr="CHALLENGE" no
 option "phash" p "string representing the password hash for OCRA" string typestr="HASH" no
