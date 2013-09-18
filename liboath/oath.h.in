@@ -447,10 +447,12 @@ extern OATHAPI int
 oath_ocra_challenge_generate_suitestr (const char *ocrasuite,
 				       char *challenge);
 
-extern OATHAPI char *
-oath_ocra_convert_challenge (oath_ocra_challenge_t challenge_type,
-			     const char *challenge_string,
-			     size_t * challenge_binary_length);
+extern OATHAPI int
+oath_ocra_convert_challenge (size_t number_of_challenges,
+			     oath_ocra_challenge_t * challenge_type,
+			     const char **challenge_string,
+			     char *output_challenge,
+			     size_t * output_challenge_length);
 
 extern OATHAPI int
 oath_ocra_generate(const char *secret,
