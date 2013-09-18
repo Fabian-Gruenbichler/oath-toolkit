@@ -284,12 +284,26 @@ parse_usersfile (const char *username,
 	  break;
 
 	case OATH_ALGO_OCRA:
-	  rc = oath_ocra_validate3 (secret, secret_length,
-				    ocra_suite,
-				    start_moving_factor,
-				    challenge, NULL, NULL, time (NULL), otp);
-	  if (rc == OATH_OK)
-	    rc = 1;
+	  {
+	    oath_ocrasuite_t *os;
+	    oath_ocra_challenge_t challenge_type;
+	    rc = oath_ocrasuite_parse (ocra_suite, &os);
+	    if (rc != OATH_OK)
+	      rc = 1;
+	    else
+	      {
+		challenge_type = oath_ocrasuite_get_challenge_type (os);
+		rc = oath_ocra_validate2 (secret, secret_length,
+					  ocra_suite,
+					  start_moving_factor,
+					  1,
+					  &challenge_type,
+					  &challenge, NULL, NULL, time (NULL),
+					  otp);
+		if (rc == OATH_OK)
+		  rc = 1;
+	      }
+	  }
 	default:
 	  break;
 	}
