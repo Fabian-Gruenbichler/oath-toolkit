@@ -209,6 +209,10 @@ main (int argc, char *argv[])
   size_t bin_length;
   char *challenges_bin = NULL;
   char *phash_bin = NULL;
+  oath_ocrasuite_t *osh;
+  oath_ocra_challenge_t chall_type;
+  char *challenge;
+  size_t chall_length;
   int totpflags = 0;
 
   set_program_name (argv[0]);
@@ -237,7 +241,7 @@ main (int argc, char *argv[])
   if (args_info.help_given)
     usage (EXIT_SUCCESS);
 
-  if (args_info.inputs_num == 0)
+  if (args_info.inputs_num == 0 && (!args_info.generate_challenges_given))
     {
       cmdline_parser_print_help ();
       emit_bug_reporting_address ();
@@ -248,6 +252,65 @@ main (int argc, char *argv[])
   if (rc != OATH_OK)
     error (EXIT_FAILURE, 0, "liboath initialization failed: %s",
 	   oath_strerror (rc));
+
+  if (args_info.hotp_flag + args_info.totp_given + args_info.ocra_flag > 1)
+    error (EXIT_FAILURE, 0,
+	   "more than one mode set! use either --hotp, --totp or --ocra");
+  if (args_info.totp_given)
+    mode = OATH_ALGO_TOTP;
+  if (args_info.ocra_flag)
+    mode = OATH_ALGO_OCRA;
+
+  if (mode == OATH_ALGO_OCRA && args_info.generate_challenges_given)
+    {
+      if (args_info.inputs_num > 0 || args_info.challenges_given)
+	{
+	  error (EXIT_FAILURE, 0,
+		 "generating challenges does not require a secret key or existing challenges!");
+	}
+      if (args_info.suite_given && args_info.challenge_type_given)
+	error (EXIT_FAILURE, 0,
+	       "either use --suite or --challenges-type to specify challenge type to be generated!");
+      if (args_info.suite_given)
+	{
+	  if (args_info.verbose_flag)
+	    verbose_ocra (args_info.suite_orig);
+	  rc = oath_ocrasuite_parse (args_info.suite_orig, &osh);
+	  if (rc != OATH_OK)
+	    error (EXIT_FAILURE, 0, "failed to parse OCRAsuite!");
+	  chall_type = oath_ocrasuite_get_challenge_type (osh);
+	  chall_length = oath_ocrasuite_get_challenge_length (osh);
+	}
+      else
+	{
+	  if (strcmp (args_info.challenge_type_arg, "num") == 0)
+	    chall_type = OATH_OCRA_CHALLENGE_NUM;
+	  else if (strcmp (args_info.challenge_type_arg, "hex") == 0)
+	    chall_type = OATH_OCRA_CHALLENGE_HEX;
+	  else if (strcmp (args_info.challenge_type_arg, "alphanum") == 0)
+	    chall_type = OATH_OCRA_CHALLENGE_HEX;
+	  else
+	    error (EXIT_FAILURE, 0,
+		   "valid --challenge-type s are 'num','hex' and 'alphanum'.");
+	  chall_length = args_info.challenge_length_arg;
+	}
+      challenge = malloc (chall_length + 1);
+      if (challenge == NULL)
+	error (EXIT_FAILURE, 0, "failed to allocate memory for challenge");
+      while (args_info.generate_challenges_arg > 0)
+	{
+	  rc =
+	    oath_ocra_challenge_generate (chall_type, chall_length,
+					  challenge);
+	  if (rc != OATH_OK)
+	    error (EXIT_FAILURE, 0, "failed to generate challenge");
+	  printf ("%s\n", challenge);
+	  args_info.generate_challenges_arg--;
+	}
+      free (challenge);
+      oath_done ();
+      return EXIT_SUCCESS;
+    }
 
   if (args_info.base32_flag)
     {
@@ -284,13 +347,6 @@ main (int argc, char *argv[])
     window = args_info.window_arg;
   else
     window = 0;
-  if (args_info.hotp_flag + args_info.totp_given + args_info.ocra_flag > 1)
-    error (EXIT_FAILURE, 0,
-	   "more than one mode set! use either --hotp, --totp or --ocra");
-  if (args_info.totp_given)
-    mode = OATH_ALGO_TOTP;
-  if (args_info.ocra_flag)
-    mode = OATH_ALGO_OCRA;
 
   if (validate_otp_p (args_info.inputs_num) && !args_info.digits_orig)
     digits = strlen (args_info.inputs[1]);
