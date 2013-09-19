@@ -435,8 +435,8 @@ oath_ocrasuite_get_password_hash (oath_ocrasuite_t *osh);
 extern OATHAPI int
 oath_ocrasuite_get_session_length (oath_ocrasuite_t *osh);
 
-extern OATHAPI int
-oath_ocrasuite_get_time (oath_ocrasuite_t *osh, uint16_t * time_step_size);
+extern OATHAPI uint64_t
+oath_ocrasuite_get_time_step (oath_ocrasuite_t *osh);
 
 extern OATHAPI int
 oath_ocra_challenge_generate (oath_ocra_challenge_t challtype,

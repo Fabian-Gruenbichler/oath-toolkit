@@ -97,7 +97,7 @@ struct oath_ocrasuite_st
   oath_ocra_hash_t password_hash;
   /* Divisor used to calculate timesteps passed since beginning of
      epoch (0 means no timestamp included as data input). */
-  uint16_t time_step_size;
+  uint64_t time_step_size;
   /* Number of bytes of session information used as data input. */
   size_t session_length;
   /* Total length of data input (in bytes). */
@@ -391,6 +391,22 @@ oath_ocrasuite_get_session_length (oath_ocrasuite_t * osh)
 }
 
 /**
+ * oath_ocrasuite_get_time_step:
+ * @osh: OCRASuite handle.
+ *
+ * Get the size of one time step as specified in the OCRASuite.
+ *
+ * Returns: size of one time step in seconds.
+ *
+ * Since: 2.6.0
+ **/
+uint64_t
+oath_ocrasuite_get_time_step (oath_ocrasuite_t * osh)
+{
+  return osh->time_step_size;
+}
+
+/**
  * oath_ocra_challenge_generate:
  * @challtype: a %oath_ocra_challenge_t type, e.g., #OATH_OCRA_CHALLENGE_HEX.
  * @length: length of challenge to generate.
@@ -510,7 +526,7 @@ oath_ocra_convert_challenge (size_t number_of_challenges,
 			     size_t * output_challenge_length)
 {
   int curr_pos = 0;
-  size_t i = 0, challenge_binary_length=0;
+  size_t i = 0, challenge_binary_length = 0;
 
   while (i < number_of_challenges)
     {

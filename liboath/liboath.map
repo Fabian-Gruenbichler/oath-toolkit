@@ -101,4 +101,5 @@ LIBOATH_2.6.0
     oath_ocrasuite_get_challenge_length;
     oath_ocrasuite_get_password_hash;
     oath_ocrasuite_get_session_length;
+	oath_ocrasuite_get_time_step;
 } LIBOATH_2.2.0;
