@@ -114,6 +114,79 @@ verbose_totp (time_t t0, time_t time_step_size, time_t when)
 	  (when - t0) / time_step_size);
 }
 
+static char *
+map_hash (oath_ocra_hash_t hash)
+{
+  switch (hash)
+    {
+    case OATH_OCRA_HASH_SHA1:
+      return "SHA1";
+    case OATH_OCRA_HASH_SHA256:
+      return "SHA256";
+    case OATH_OCRA_HASH_SHA512:
+      return "SHA512";
+    default:
+      return "UNDEFINED";
+    }
+}
+
+static void
+verbose_ocra (char *ocrasuite)
+{
+  oath_ocrasuite_t *osh;
+  oath_ocra_challenge_t challenge_type;
+  int rc;
+
+  rc = oath_ocrasuite_parse (ocrasuite, &osh);
+
+  if (rc != OATH_OK)
+    {
+      printf ("OCRASuite '%s' could not be parsed successfully (%d)\n",
+	      ocrasuite, rc);
+      return;
+    }
+
+  printf ("OCRAsuite '%s' contains the following specification:\n",
+	  ocrasuite);
+  printf ("\tHMAC algorithm used: %s\n",
+	  map_hash (oath_ocrasuite_get_cryptofunction_hash (osh)));
+  printf ("\tHMAC truncated to %d digits\n",
+	  oath_ocrasuite_get_cryptofunction_digits (osh));
+  printf ("\tDatainput:\n");
+  switch (oath_ocrasuite_get_challenge_type (osh))
+    {
+    case OATH_OCRA_CHALLENGE_NUM:
+      printf ("\tnumerical challenges");
+      break;
+    case OATH_OCRA_CHALLENGE_HEX:
+      printf ("\thexadecimal challenges");
+      break;
+    case OATH_OCRA_CHALLENGE_ALPHANUM:
+      printf ("\talphanumeric challenges");
+    }
+  printf (" (max %d chars)\n", oath_ocrasuite_get_challenge_length (osh));
+  if (oath_ocrasuite_get_counter (osh))
+    printf ("\tcounter: yes\n");
+  else
+    printf ("\tcounter: no\n");
+
+  if (oath_ocrasuite_get_password_hash (osh) == OATH_OCRA_HASH_NONE)
+    printf ("\tpassword hash: no\n");
+  else
+    printf ("\tpassword hash: %s\n",
+	    map_hash (oath_ocrasuite_get_password_hash (osh)));
+  if (oath_ocrasuite_get_session_length (osh) == 0)
+    printf ("\tsession information: no\n");
+  else
+    printf ("\tsession information: %d bytes\n",
+	    oath_ocrasuite_get_session_length (osh));
+  if (oath_ocrasuite_get_time_step (osh) == 0)
+    printf ("\ttimestamp: no\n");
+  else
+    printf ("\ttimestamp: yes, %llu seconds per time step\n",
+	    oath_ocrasuite_get_time_step (osh));
+}
+
 #define generate_otp_p(n) ((n) == 1)
 #define validate_otp_p(n) ((n) == 2)
 
@@ -381,6 +454,8 @@ main (int argc, char *argv[])
       if (!args_info.suite_given)
 	error (EXIT_FAILURE, 0,
 	       "ocra suite string is mandatory in OCRA mode");
+      if (args_info.verbose_flag)
+	verbose_ocra (args_info.suite_orig);
       if (args_info.phash_given)
 	{
 	  rc = oath_hex2bin (args_info.phash_arg, NULL, &bin_length);
