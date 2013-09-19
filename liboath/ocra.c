@@ -439,7 +439,7 @@ oath_ocra_challenge_generate (oath_ocra_challenge_t challtype,
   switch (challtype)
     {
     case OATH_OCRA_CHALLENGE_ALPHANUM:
-      wraplen = sizeof (lookup) - 1;
+      wraplen = strlen (lookup);
       break;
 
     case OATH_OCRA_CHALLENGE_NUM:
