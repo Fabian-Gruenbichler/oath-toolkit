@@ -511,7 +511,7 @@ oath_ocra_convert_challenge (size_t number_of_challenges,
 {
   int i = 0;
   int curr_pos = 0;
-  size_t challenge_binary_length;
+  size_t challenge_binary_length = 0;
   while (i < number_of_challenges)
     {
       switch (challenge_type[i])
