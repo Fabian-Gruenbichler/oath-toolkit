@@ -130,6 +130,16 @@ map_hash (oath_ocra_hash_t hash)
     }
 }
 
+static oath_ocra_challenge_t
+map_chall_t (char *chall_type_str) {
+	if(strcmp(chall_type_str,"num")==0)
+		return OATH_OCRA_CHALLENGE_NUM;
+	else if(strcmp(chall_type_str,"hex")==0)
+		return OATH_OCRA_CHALLENGE_HEX;
+	else if(strcmp(chall_type_str,"alphanum")==0)
+		return OATH_OCRA_CHALLENGE_ALPHANUM;
+}
+
 static void
 verbose_ocra (char *ocrasuite)
 {
@@ -207,10 +217,10 @@ main (int argc, char *argv[])
   oath_alg_t mode = OATH_ALGO_HOTP;
 
   size_t bin_length;
-  char *challenges_bin = NULL;
   char *phash_bin = NULL;
   oath_ocrasuite_t *osh;
   oath_ocra_challenge_t chall_type;
+  oath_ocra_challenge_t *chall_type_p;
   char *challenge;
   size_t chall_length;
   int totpflags = 0;
@@ -263,14 +273,14 @@ main (int argc, char *argv[])
 
   if (mode == OATH_ALGO_OCRA && args_info.generate_challenges_given)
     {
-      if (args_info.inputs_num > 0 || args_info.challenges_given)
+      if (args_info.inputs_num > 0 || args_info.challenge_given)
 	{
 	  error (EXIT_FAILURE, 0,
 		 "generating challenges does not require a secret key or existing challenges!");
 	}
-      if (args_info.suite_given && args_info.challenge_type_given)
+      if (args_info.suite_given && args_info.generate_type_given)
 	error (EXIT_FAILURE, 0,
-	       "either use --suite or --challenges-type to specify challenge type to be generated!");
+	       "either use --suite or --generate-type to specify challenge type to be generated!");
       if (args_info.suite_given)
 	{
 	  if (args_info.verbose_flag)
@@ -283,16 +293,16 @@ main (int argc, char *argv[])
 	}
       else
 	{
-	  if (strcmp (args_info.challenge_type_arg, "num") == 0)
+	  if (strcmp (args_info.generate_type_arg, "num") == 0)
 	    chall_type = OATH_OCRA_CHALLENGE_NUM;
-	  else if (strcmp (args_info.challenge_type_arg, "hex") == 0)
+	  else if (strcmp (args_info.generate_type_arg, "hex") == 0)
 	    chall_type = OATH_OCRA_CHALLENGE_HEX;
-	  else if (strcmp (args_info.challenge_type_arg, "alphanum") == 0)
+	  else if (strcmp (args_info.generate_type_arg, "alphanum") == 0)
 	    chall_type = OATH_OCRA_CHALLENGE_HEX;
 	  else
 	    error (EXIT_FAILURE, 0,
-		   "valid --challenge-type s are 'num','hex' and 'alphanum'.");
-	  chall_length = args_info.challenge_length_arg;
+		   "valid --generate-type values are 'num','hex' and 'alphanum'.");
+	  chall_length = args_info.generate_length_arg;
 	}
       challenge = malloc (chall_length + 1);
       if (challenge == NULL)
@@ -504,9 +514,9 @@ main (int argc, char *argv[])
 
     case OATH_ALGO_OCRA:
       bin_length = 0;
-      if (!args_info.challenges_given)
+      if (args_info.challenge_given == 0)
 	error (EXIT_FAILURE, 0,
-	       "challenges string is mandatory in OCRA mode");
+	       "at least one challenge string is mandatory in OCRA mode");
       if (!args_info.suite_given)
 	error (EXIT_FAILURE, 0,
 	       "ocra suite string is mandatory in OCRA mode");
@@ -529,30 +539,34 @@ main (int argc, char *argv[])
 		     "could not convert phash string to byte-array");
 	    }
 	}
-      bin_length = 0;
-      rc = oath_hex2bin (args_info.challenges_arg, NULL, &bin_length);
-      challenges_bin = calloc (bin_length, sizeof (char));
-      if (rc != OATH_TOO_SMALL_BUFFER || challenges_bin == NULL)
-	error (EXIT_FAILURE, 0,
-	       "could not convert challenges string to byte-array");
-      rc =
-	oath_hex2bin (args_info.challenges_arg, challenges_bin, &bin_length);
-      if (rc != OATH_OK)
-	{
-	  free (challenges_bin);
-	  error (EXIT_FAILURE, 0,
-		 "could not convert challenges string to byte-array");
-	}
+
       now = time (NULL);
       when = parse_time (args_info.now_arg, now);
+
+	  if(args_info.challenge_given == 1 && args_info.challenge_type_given == 0) {
+		rc = oath_ocrasuite_parse(args_info.suite_orig,&osh);
+		if(rc!=OATH_OK)
+			error(EXIT_FAILURE, 0, "could not parse OCRAsuite string");
+		chall_type = oath_ocrasuite_get_challenge_type(osh);
+		chall_type_p = &chall_type;
+	} else if(args_info.challenge_given != args_info.challenge_type_given) {
+		error(EXIT_FAILURE, 0, "number of challenges and number of challenge types do not match");
+	} else {
+		size_t i;
+		chall_type_p = malloc(sizeof(oath_ocra_challenge_t)*args_info.challenge_type_given);
+		for(i=0;i<args_info.challenge_type_given;i++)
+			*(chall_type_p+i)=map_chall_t(args_info.challenge_type_arg[i]);
+	}	
+
       if (generate_otp_p (args_info.inputs_num))
 	{
-	  rc = oath_ocra_generate (secret,
+	  rc = oath_ocra_generate2 (secret,
 				   secretlen,
 				   args_info.suite_arg,
 				   args_info.counter_arg,
-				   challenges_bin,
-				   bin_length,
+				   args_info.challenge_given,
+				   chall_type_p,
+				   args_info.challenge_orig,
 				   phash_bin,
 				   args_info.session_info_arg, when, otp);
 	  if (rc != OATH_OK)
@@ -561,12 +575,13 @@ main (int argc, char *argv[])
 	}
       else if (validate_otp_p (args_info.inputs_num))
 	{
-	  rc = oath_ocra_validate (secret,
+	  rc = oath_ocra_validate2 (secret,
 				   secretlen,
 				   args_info.suite_arg,
 				   args_info.counter_arg,
-				   challenges_bin,
-				   bin_length,
+				   args_info.challenge_given,
+				   chall_type_p,
+				   args_info.challenge_orig,
 				   phash_bin,
 				   args_info.session_info_arg,
 				   when, args_info.inputs[1]);
@@ -576,7 +591,6 @@ main (int argc, char *argv[])
 
 	}
       free (phash_bin);
-      free (challenges_bin);
       break;
 
     default:

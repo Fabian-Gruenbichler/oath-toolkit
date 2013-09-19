@@ -15,24 +15,34 @@
 
 purpose "Generate and validate OATH one-time passwords."
 
+section "Modes"
 option "hotp" - "use event-based HOTP mode" flag off
 option "totp" - "use time-variant TOTP mode" values="sha1","sha256","sha512" default="sha1" optional argoptional
 option "ocra" - "use OCRA mode" flag off
 
+section "General options"
 option "base32" b "use base32 encoding of KEY instead of hex" flag off
+option "verbose" v "explain what is being done" flag off
+option "window" w "window of counter values to test when validating HOTP/TOTP values" int typestr="WIDTH" no
+
+section "HOTP"
 option "counter" c "HOTP/OCRA counter value" longlong typestr="COUNTER" no
+
+section "TOTP"
 option "time-step-size" s "TOTP time-step duration" string typestr="DURATION" default="30s" no
 option "start-time" S "when to start counting time steps for TOTP" string typestr="TIME" default="1970-01-01 00:00:00 UTC" no
-option "now" N "use this time as current time for TOTP and OCRA" string typestr="TIME" default="now" no
+option "now" N "use this time as current time for OCRA" string typestr="TIME" default="now" no
 option "digits" d "number of digits in one-time password" int typestr="DIGITS" no
-option "window" w "window of counter values to test when validating OTPs" int typestr="WIDTH" no
 
-option "generate-challenges" g "generate NUM OCRA challenges" int optional argoptional typestr="NUM" default="1"
-option "challenge-type" - "type of generated challenges" typestr="TYPE" values="num","hex","alphanum" optional argoptional default="num"
-option "challenge-length" - "length of generated challenges" int optional argoptional typestr="LEN" default="8"
+section "OCRA"
+option "generate-challenges" g "generate NUM OCRA challenges" int optional argoptional typestr="NUM" default="1" dependon="ocra"
+option "generate-length" - "length of generated challenges" int optional argoptional typestr="LEN" default="8" dependon="generate-challenges"
+option "generate-type" - "type of generated challenges" typestr="TYPE" values="num","hex","alphanum" dependon="generate-challenges" default="num" optional argoptional
+option "challenge-type" - "challenge type(s) for OCRA calculations" typestr="TYPE" values="num","hex","alphanum" optional argoptional default="num" multiple
 option "suite" o "string specifying the OCRASuite to use, e.g., OCRA-1:HOTP-SHA1-6:QN08" string typestr="SUITE" no
 option "session-info" i "hex encoded string representing session information for OCRA" string typestr="SESSION" no
-option "challenges" C "hex encoded string representing the challenges for OCRA" string typestr="CHALLENGE" no
+option "challenge" q "challenge question(s)" string typestr="CHALLENGE" no multiple
 option "phash" p "string representing the password hash for OCRA" string typestr="HASH" no
+option "ocra-counter" C "OCRA counter value" longlong typestr="COUNTER" no
+option "ocra-now" n "use this time as current time for OCRA" string typestr="TIME" default="now" no
 
-option "verbose" v "explain what is being done" flag off
