@@ -46,6 +46,7 @@ AC_DEFUN([gl_EARLY],
   # Code from module binary-io-tests:
   # Code from module c-ctype:
   # Code from module c-ctype-tests:
+  # Code from module calloc-posix:
   # Code from module canonicalize-lgpl:
   # Code from module canonicalize-lgpl-tests:
   # Code from module chdir:
@@ -250,6 +251,11 @@ AC_DEFUN([gl_INIT],
   gl_source_base='gl'
   gl_FUNC_ALLOCA
   gl_FUNC_BASE32
+  gl_FUNC_CALLOC_POSIX
+  if test $REPLACE_CALLOC = 1; then
+    AC_LIBOBJ([calloc])
+  fi
+  gl_STDLIB_MODULE_INDICATOR([calloc-posix])
   gl_CANONICALIZE_LGPL
   if test $HAVE_CANONICALIZE_FILE_NAME = 0 || test $REPLACE_CANONICALIZE_FILE_NAME = 1; then
     AC_LIBOBJ([canonicalize-lgpl])
@@ -691,6 +697,7 @@ AC_DEFUN([gl_FILE_LIST], [
   lib/basename-lgpl.c
   lib/c-ctype.c
   lib/c-ctype.h
+  lib/calloc.c
   lib/canonicalize-lgpl.c
   lib/close.c
   lib/dirname-lgpl.c
@@ -785,6 +792,7 @@ AC_DEFUN([gl_FILE_LIST], [
   m4/00gnulib.m4
   m4/alloca.m4
   m4/base32.m4
+  m4/calloc.m4
   m4/canonicalize.m4
   m4/close.m4
   m4/closedir.m4

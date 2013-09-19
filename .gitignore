@@ -239,6 +239,15 @@ liboath/man/oath_ocra_suite_parse.3
 liboath/man/oath_ocra_validate.3
 liboath/man/oath_ocra_validate2.3
 liboath/man/oath_ocra_validate3.3
+liboath/man/oath_ocrasuite_done.3
+liboath/man/oath_ocrasuite_get_challenge_length.3
+liboath/man/oath_ocrasuite_get_challenge_type.3
+liboath/man/oath_ocrasuite_get_counter.3
+liboath/man/oath_ocrasuite_get_cryptofunction_digits.3
+liboath/man/oath_ocrasuite_get_cryptofunction_hash.3
+liboath/man/oath_ocrasuite_get_password_hash.3
+liboath/man/oath_ocrasuite_get_session_length.3
+liboath/man/oath_ocrasuite_parse.3
 liboath/man/oath_retrieve_mode.3
 liboath/man/oath_strerror.3
 liboath/man/oath_strerror_name.3

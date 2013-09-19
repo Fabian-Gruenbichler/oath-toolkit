@@ -26,7 +26,11 @@
 #include <stdio.h>
 
 const char *pHash =
-  "\x71\x10\xed\xa4\xd0\x9e\x06\x2a\xa5\xe4\xa3\x90\xb0\xa5\x72\xac\x0d\x2c\x02\x20";
+  "\x71\x10\xed\xa4\xd0\x9e\x06\x2a\xa5\xe4"
+  "\xa3\x90\xb0\xa5\x72\xac\x0d\x2c\x02\x20";
+
+const char *secret =
+  "1234567890123456789012345678901234567890123456789012345678901234";
 
 #define KEY_1 "12345678901234567890"
 #define KEY_2 "12345678901234567890123456789012"
@@ -542,5 +546,13 @@ main (void)
 	  return 1;
 	}
     }
+
+  rc = oath_done ();
+  if (rc != OATH_OK)
+    {
+      printf ("oath_done: %d\n", rc);
+      return 1;
+    }
+
   return 0;
 }

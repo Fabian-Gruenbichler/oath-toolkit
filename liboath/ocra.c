@@ -509,9 +509,9 @@ oath_ocra_convert_challenge (size_t number_of_challenges,
 			     char *output_challenge,
 			     size_t * output_challenge_length)
 {
-  int i = 0;
   int curr_pos = 0;
-  size_t challenge_binary_length = 0;
+  size_t i = 0, challenge_binary_length=0;
+
   while (i < number_of_challenges)
     {
       switch (challenge_type[i])
@@ -713,20 +713,25 @@ static int
  * @output_ocra: Output buffer.
  *
  * Generate a truncated hash-value used for challenge-response-based
- * authentication according to the OCRA algorithm described in RFC 6287.
- * Besides the mandatory challenge(s), additional input is optional.
+ * authentication according to the OCRA algorithm described in RFC
+ * 6287.  Besides the mandatory challenge(s), additional input is
+ * optional, dictated by the OCRASuite value.
  *
- * The string @ocrasuite denotes which mode of OCRA is to be used. Furthermore
- * it contains information about which of the possible optional data inputs are
- * to be used, and how.
+ * The string @ocrasuite denotes which mode of OCRA is to be
+ * used. Furthermore it contains information about which of the
+ * possible optional data inputs are to be used, and how.
  *
- * Numeric challenges must be converted to base16 before being passed as byte-array.
+ * Note that challenges must be in the prepared binary form before
+ * being passed in @challenges, see oath_ocra_convert_challenge().
  *
- * The output buffer @output_ocra must have room for at least as many digits as
- * specified as part of @ocrasuite, plus one terminating NUL char.
+ * The output buffer @output_ocra must have room for at least as many
+ * digits as specified as part of @ocrasuite, plus one terminating NUL
+ * char.  Use oath_ocrasuite_get_cryptofunction_digits() to find out
+ * how many digits.  Currently the code only supports 6, 7, and 8
+ * digit outputs.
  *
- * Returns: on success, %OATH_OK (zero) is returned, otherwise an error code is
- *   returned.
+ * Returns: on success, %OATH_OK (zero) is returned, otherwise an
+ * error code is returned.
  *
  * Since: 2.6.0
  **/
@@ -765,33 +770,37 @@ oath_ocra_generate (const char
  * @secret_length: Length of @secret.
  * @ocrasuite: String with information about used hash algorithms and input.
  * @counter: Counter value, optional (see @ocrasuite).
- * @challenges: Array of challenge strings, mandatory
+ * @challenges: Client/server challenges array, mandatory.
+ * @challenges_count: Number of string elements of @challenges.
  * @password_hash: Hashed password value, optional (see @ocrasuite).
  * @session: Static data about current session, optional (see @ocra-suite).
  * @now: Current timestamp, optional (see @ocrasuite).
  * @output_ocra: Output buffer.
  *
  * Generate a truncated hash-value used for challenge-response-based
- * authentication according to the OCRA algorithm described in RFC 6287.
- * Besides the mandatory challenge(s), additional input is optional.
+ * authentication according to the OCRA algorithm described in RFC
+ * 6287.  Besides the mandatory challenge(s), additional input is
+ * optional, dictated by the OCRASuite value.
  *
- * The string @ocrasuite denotes which mode of OCRA is to be used. Furthermore
- * it contains information about which of the possible optional data inputs are
- * to be used, and how.
+ * The string @ocrasuite denotes which mode of OCRA is to be
+ * used. Furthermore it contains information about which of the
+ * possible optional data inputs are to be used, and how.
  *
- * The challenge strings passed in @challenges are combined into one long
- * challenge string, which is then converted to binary. They must be
- * NUL-terminated.
+ * The challenge strings (NUL terminated) passed in the @challenges
+ * array with @challenges_count elements are combined into one
+ * 128-byte binary challenge.
  *
- * The output buffer @output_ocra must have room for at least as many digits as
- * specified as part of @ocrasuite, plus one terminating NUL char.
+ * The output buffer @output_ocra must have room for at least as many
+ * digits as specified as part of @ocrasuite, plus one terminating NUL
+ * char.  Use oath_ocrasuite_get_cryptofunction_digits() to find out
+ * how many digits.  Currently the code only supports 6, 7, and 8
+ * digit outputs.
  *
- * Returns: on success, %OATH_OK (zero) is returned, otherwise an error code is
- *   returned.
+ * Returns: on success, %OATH_OK (zero) is returned, otherwise an
+ * error code is returned.
  *
  * Since: 2.6.0
  **/
-
 int
 oath_ocra_generate2 (const char *secret,
 		     size_t secret_length,
